@@ -737,8 +737,15 @@ def fit_bt_davidson(comparisons, policies, n_iter=3000, lr=0.05):
     return stats
 
 
+_RANKINGS_CACHE = {"key": None, "value": None}
+
 def compute_rankings():
-    """Compute current rankings from all sessions."""
+    """Compute current rankings from all sessions (cached by session count)."""
+    # Cache key = number of sessions; invalidates when new session added
+    cache_key = len(EVAL_SESSIONS)
+    if _RANKINGS_CACHE["key"] == cache_key and _RANKINGS_CACHE["value"] is not None:
+        return _RANKINGS_CACHE["value"]
+
     comparisons = [(s["policy_a"], s["policy_b"], s["preference"]) for s in EVAL_SESSIONS]
     policies = list({m["id"] for m in MODELS})
     stats = fit_bt_davidson(comparisons, policies)
@@ -758,6 +765,8 @@ def compute_rankings():
                 "status": model["status"],
                 **st,
             })
+    _RANKINGS_CACHE["key"] = cache_key
+    _RANKINGS_CACHE["value"] = result
     return result
 
 
