@@ -1020,6 +1020,17 @@ a:hover { color: #176a88; }
 .q-toast.q-toast-error { border-left:4px solid #ff4d4f; padding-left:14px; }
 .q-toast.q-toast-error::before { background:#ff4d4f; content:'\2715'; }
 
+/* ── Upload zone (shared between /scenes and /tasks) ── */
+.upload-zone { border: 1px dashed #d9d9d9; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; background: #fafafa; }
+.upload-zone:hover { border-color: #1F80A0; background: #f0f9fb; }
+.upload-icon { margin-bottom: 8px; }
+.upload-text { font-size: 14px; color: rgba(0,0,0,0.65); }
+.upload-hint { font-size: 12px; color: rgba(0,0,0,0.35); margin-top: 4px; }
+.upload-files { margin-top: 8px; text-align: left; }
+.upload-file-item { display: flex; align-items: center; gap: 6px; padding: 4px 8px; background: #fff; border: 1px solid #f0f0f0; border-radius: 6px; margin-top: 4px; font-size: 12px; color: rgba(0,0,0,0.65); }
+.upload-file-item .file-icon { color: #1F80A0; }
+.upload-file-item .file-size { color: rgba(0,0,0,0.35); margin-left: auto; }
+
 /* ── Multi-select dropdown with chips (used on /eval-records and /analysis) ── */
 .er-dd-trigger { display:flex; align-items:center; width:100%; min-height:36px; padding:4px 10px; border:1px solid #d9d9d9; border-radius:8px; background:#fff; cursor:pointer; transition:all 0.2s; box-sizing:border-box; }
 .er-dd-trigger:hover { border-color:#1F80A0; }
@@ -1143,6 +1154,100 @@ document.querySelectorAll('input[type="range"]').forEach(s => {
 function openModal(id) { const e=document.getElementById(id); e.style.display='block'; requestAnimationFrame(()=>e.classList.add('active')); }
 function closeModal(id) { const e=document.getElementById(id); e.classList.remove('active'); setTimeout(()=>{e.style.display='none';},300); }
 document.querySelectorAll('.ant-drawer-mask').forEach(m => { m.addEventListener('click',(e)=>{ if(e.target===m) closeModal(m.id); }); });
+
+// Global upload-zone: show file names + drag-drop
+window.showFileNames = function(input) {
+  var container = input.closest('.upload-zone').querySelector('.upload-files');
+  container.innerHTML = '';
+  Array.from(input.files).forEach(function(f) {
+    var size = f.size < 1048576 ? (f.size/1024).toFixed(0)+'KB' : (f.size/1048576).toFixed(1)+'MB';
+    var isImg = (f.type || '').startsWith('image/');
+    var icon = isImg ? '[IMG]' : '[VID]';
+    container.innerHTML += '<div class="upload-file-item"><span class="file-icon">'+icon+'</span><span>'+f.name+'</span><span class="file-size">'+size+'</span></div>';
+  });
+};
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.upload-zone').forEach(function(zone) {
+    if (zone.dataset.dnd === '1') return;
+    zone.dataset.dnd = '1';
+    zone.addEventListener('dragover', function(e) { e.preventDefault(); this.style.borderColor='#1F80A0'; this.style.background='#e6f4f8'; });
+    zone.addEventListener('dragleave', function() { this.style.borderColor=''; this.style.background=''; });
+    zone.addEventListener('drop', function(e) {
+      e.preventDefault(); this.style.borderColor=''; this.style.background='';
+      var input = this.querySelector('input[type="file"]');
+      input.files = e.dataTransfer.files;
+      window.showFileNames(input);
+    });
+  });
+});
+
+// ── Reusable multi-select dropdown with chips ──
+// HTML pattern:
+//   <div id="XXX-btn" class="er-dd-trigger" onclick="mselToggle('XXX', event)">
+//     <div id="XXX-chips" class="er-chips"></div>
+//     <span>▼</span>
+//   </div>
+//   <div id="XXX-panel" class="er-dd-panel"><label class="er-opt"><input type="checkbox" value="..." data-name="..." onchange="mselSync('XXX')"> ...</label>...</div>
+//   <input type="hidden" id="XXX-hidden" name="...">
+window.mselToggle = function(id, evt) {
+  if (evt) evt.stopPropagation();
+  document.getElementById(id + '-panel').classList.toggle('open');
+};
+window.mselToggleAll = function(id, checked) {
+  document.querySelectorAll('#' + id + '-panel input[type=checkbox]').forEach(function(cb) { cb.checked = checked; });
+  window.mselSync(id);
+};
+window.mselSync = function(id) {
+  var panel = document.getElementById(id + '-panel');
+  if (!panel) return;
+  var cbs = panel.querySelectorAll('input[type=checkbox]');
+  var checked = Array.prototype.filter.call(cbs, function(cb) { return cb.checked; });
+  var box = document.getElementById(id + '-chips');
+  var hidden = document.getElementById(id + '-hidden');
+  box.innerHTML = '';
+  if (checked.length === 0) {
+    var p = document.createElement('span');
+    p.style.color = 'rgba(0,0,0,0.35)';
+    p.style.fontSize = '14px';
+    p.textContent = '请选择';
+    box.appendChild(p);
+  } else {
+    checked.forEach(function(cb) {
+      var name = cb.getAttribute('data-name') || cb.value;
+      var chip = document.createElement('span');
+      chip.className = 'er-chip';
+      chip.innerHTML = '<span class="er-chip-text">' + name + '</span><span class="er-chip-x" data-val="' + cb.value + '" data-msid="' + id + '">\u00d7</span>';
+      box.appendChild(chip);
+    });
+    box.querySelectorAll('.er-chip-x').forEach(function(x) {
+      x.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var tg = document.querySelector('#' + x.dataset.msid + '-panel input[value="' + x.dataset.val + '"]');
+        if (tg) tg.checked = false;
+        window.mselSync(x.dataset.msid);
+      });
+    });
+  }
+  if (hidden) hidden.value = checked.map(function(cb) { return cb.value; }).join(',');
+};
+// Close dropdowns when clicking outside, and initialize chip display on load
+document.addEventListener('click', function(e) {
+  document.querySelectorAll('.er-dd-panel.open').forEach(function(panel) {
+    var btn = document.getElementById(panel.id.replace('-panel', '-btn'));
+    if (btn && !btn.contains(e.target) && !panel.contains(e.target)) {
+      panel.classList.remove('open');
+    }
+  });
+});
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize chip display only for panels that pair with a hidden input (mselSync pattern)
+  document.querySelectorAll('.er-dd-panel[id$="-panel"]').forEach(function(panel) {
+    var id = panel.id.replace('-panel', '');
+    if (document.getElementById(id + '-chips') && document.getElementById(id + '-hidden')) {
+      window.mselSync(id);
+    }
+  });
+});
 
 // Global toast helper
 window.showToast = function(msg, type) {
@@ -2475,6 +2580,11 @@ def benchmarks_page():
     scene_opts = "".join(f'<option value="{s["id"]}">{s["name"]}</option>' for s in SCENES)
     criteria_opts = "".join(f'<option value="{c["id"]}">{c["name"]} ({CRITERIA_TYPES.get(c["type"],{}).get("label","")})</option>' for c in CRITERIA)
     prompt_opts = "".join(f'<option value="{p["id"]}">{p["high_level"]}</option>' for p in PROMPTS)
+    # Mselsync pattern for benchmarks create
+    bm_create_prompt_ms_opts = "".join(
+        f'<label class="er-opt"><input type="checkbox" value="{p["id"]}" data-name="{p["high_level"]}" onchange="mselSync(\'ms-bm-prompts\')"> <span>{p["high_level"]} &middot; {len(p.get("low_levels", []))} \u6b65</span></label>'
+        for p in PROMPTS
+    )
 
     content = f'''
     <div class="stat-grid">
@@ -2523,8 +2633,23 @@ def benchmarks_page():
             <div class="form-group"></div>
           </div>
           <div class="form-group">
-            <label>\u63d0\u793a\u8bcd (\u6309\u4f4f Ctrl/Cmd \u591a\u9009)</label>
-            <select name="prompt_ids" multiple style="height:140px;">{prompt_opts}</select>
+            <label>\u63d0\u793a\u8bcd</label>
+            <div style="position:relative;">
+              <div class="er-dd-trigger" id="ms-bm-prompts-btn" onclick="mselToggle('ms-bm-prompts', event)">
+                <div id="ms-bm-prompts-chips" class="er-chips"></div>
+                <span style="margin-left:auto;color:rgba(0,0,0,0.35);font-size:10px;flex-shrink:0;padding-left:4px;">&#9660;</span>
+              </div>
+              <div class="er-dd-panel" id="ms-bm-prompts-panel" style="width:100%;">
+                <div style="padding:8px 12px;border-bottom:1px solid #f0f0f0;display:flex;gap:16px;align-items:center;">
+                  <a href="javascript:;" onclick="mselToggleAll('ms-bm-prompts', true)" style="font-size:12px;color:#1F80A0;">\u5168\u9009</a>
+                  <a href="javascript:;" onclick="mselToggleAll('ms-bm-prompts', false)" style="font-size:12px;color:rgba(0,0,0,0.45);">\u6e05\u7a7a</a>
+                </div>
+                <div style="max-height:240px;overflow-y:auto;padding:6px 0;">
+                  {bm_create_prompt_ms_opts}
+                </div>
+              </div>
+              <input type="hidden" name="prompt_ids" id="ms-bm-prompts-hidden" value="">
+            </div>
           </div>
         </div>
         <div class="ant-drawer-footer">
@@ -2549,7 +2674,7 @@ def benchmarks_create():
         "name": name,
         "description": request.form.get("description", ""),
         "scene_id": request.form.get("scene_id", ""),
-        "prompt_ids": request.form.getlist("prompt_ids"),
+        "prompt_ids": [x.strip() for x in request.form.get("prompt_ids", "").split(",") if x.strip()] or request.form.getlist("prompt_ids"),
         "criteria_id": request.form.get("criteria_id", ""),
         "creator": "Joanna Qiao",
         "created_at": datetime.now().strftime("%Y-%m-%d"),
@@ -2752,6 +2877,12 @@ def tasks_page():
     bm_opts = '<option value="">\u8bf7\u9009\u62e9 Benchmark</option>' + "".join(f'<option value="{b["id"]}">{b["name"]}</option>' for b in BENCHMARKS)
     model_opts = "".join(f'<option value="{m["id"]}">{m["name"]} ({m["version"]})</option>' for m in MODELS)
     type_opts = "".join(f'<option value="{k}">{v["label"]}</option>' for k, v in CRITERIA_TYPES.items())
+    # For inline benchmark section: prompts / criteria / tag-tree
+    bm_prompt_ms_opts = "".join(
+        f'<label class="er-opt"><input type="checkbox" value="{p["id"]}" data-name="{p["high_level"]}" onchange="mselSync(\'ms-prompts\')"> <span>{p["high_level"]} &middot; {len(p.get("low_levels", []))} \u6b65</span></label>'
+        for p in PROMPTS
+    )
+    bm_criteria_opts = '<option value="">\u8bf7\u9009\u62e9</option>' + "".join(f'<option value="{c["id"]}">{c["name"]} ({CRITERIA_TYPES.get(c["type"],{}).get("label","")})</option>' for c in CRITERIA)
 
     # Build benchmark preview data for JS
     import json as _json
@@ -2779,10 +2910,11 @@ def tasks_page():
     # Tag tree selector for task labels
     task_tag_tree = build_tree_selector_html("task-tags")
 
-    # Checkpoint dropdown rows
-    ckpt_rows = ""
-    for m in MODELS:
-        ckpt_rows += f'<div class="ts-row" data-id="{m["id"]}" data-path="{m["name"]} ({m["version"]})" onclick="this.classList.toggle(\'selected\');ckptSync();">{m["name"]} <span style="color:rgba(0,0,0,0.35);margin-left:4px;">{m["version"]}</span></div>'
+    # Checkpoint options (mselSync pattern)
+    ckpt_ms_opts = "".join(
+        f'<label class="er-opt"><input type="checkbox" value="{m["id"]}" data-name="{m["name"]}" onchange="mselSync(\'ms-ckpt\')"> <span>{m["name"]} <span style="color:rgba(0,0,0,0.35);">{m["version"]}</span></span></label>'
+        for m in MODELS
+    )
     type_filter_opts = "".join(f'<option value="{k}">{v["label"]}</option>' for k, v in CRITERIA_TYPES.items())
     bm_filter_opts = "".join(f'<option>{b["name"]}</option>' for b in BENCHMARKS)
     model_filter_opts = "".join(f'<option>{m["name"]}</option>' for m in MODELS)
@@ -2856,11 +2988,22 @@ def tasks_page():
           <h4 style="font-size:14px;font-weight:500;margin-bottom:12px;color:rgba(0,0,0,0.85);">\u8bc4\u6d4b\u6a21\u578b</h4>
           <div class="form-row">
             <div class="form-group" style="grid-column:1/3;">
-              <label>Checkpoint (\u591a\u9009)</label>
-              <div class="ts-wrap" id="ts-ckpt" style="max-width:100%;">
-                <div class="ts-trigger" onclick="tsToggle('ts-ckpt')" style="min-height:36px;"><span class="ts-placeholder">\u9009\u62e9 Checkpoint</span></div>
-                <div class="ts-panel" style="max-height:240px;">{ckpt_rows}</div>
-                <input type="hidden" name="model_ids" id="ckpt-hidden" value="">
+              <label>Checkpoint</label>
+              <div style="position:relative;">
+                <div class="er-dd-trigger" id="ms-ckpt-btn" onclick="mselToggle('ms-ckpt', event)">
+                  <div id="ms-ckpt-chips" class="er-chips"></div>
+                  <span style="margin-left:auto;color:rgba(0,0,0,0.35);font-size:10px;flex-shrink:0;padding-left:4px;">&#9660;</span>
+                </div>
+                <div class="er-dd-panel" id="ms-ckpt-panel" style="width:100%;">
+                  <div style="padding:8px 12px;border-bottom:1px solid #f0f0f0;display:flex;gap:16px;align-items:center;">
+                    <a href="javascript:;" onclick="mselToggleAll('ms-ckpt', true)" style="font-size:12px;color:#1F80A0;">\u5168\u9009</a>
+                    <a href="javascript:;" onclick="mselToggleAll('ms-ckpt', false)" style="font-size:12px;color:rgba(0,0,0,0.45);">\u6e05\u7a7a</a>
+                  </div>
+                  <div style="max-height:240px;overflow-y:auto;padding:6px 0;">
+                    {ckpt_ms_opts}
+                  </div>
+                </div>
+                <input type="hidden" name="model_ids" id="ms-ckpt-hidden" value="">
               </div>
             </div>
             <div class="form-group"><label>\u90e8\u7f72\u65b9\u5f0f</label><select name="deploy_mode"><option value="">\u8bf7\u9009\u62e9</option><option>\u4e91\u7aef\u90e8\u7f72</option><option>\u672c\u5730\u90e8\u7f72</option></select></div>
@@ -2868,20 +3011,74 @@ def tasks_page():
 
           <hr style="border:none;border-top:1px solid #f0f0f0;margin:20px 0;">
 
-          <!-- Section 3: Benchmark -->
+          <!-- Section 3: Benchmark (inline scene + references) -->
           <h4 style="font-size:14px;font-weight:500;margin-bottom:12px;color:rgba(0,0,0,0.85);">Benchmark</h4>
-          <div class="form-group">
-            <label>Benchmark (\u5355\u9009)</label>
-            <select name="benchmark_id" id="bm-select" onchange="previewBm(this.value)" style="max-width:400px;">{bm_opts}</select>
+
+          <!-- Scene description -->
+          <div class="form-group" style="margin-bottom:16px;">
+            <label>\u573a\u666f\u63cf\u8ff0</label>
+            <textarea name="scene_description" rows="3" placeholder="\u63cf\u8ff0\u573a\u666f\u7684\u73af\u5883\u3001\u7269\u4f53\u5e03\u7f6e\u3001\u5149\u7167\u6761\u4ef6\u7b49\u5173\u952e\u4fe1\u606f"></textarea>
           </div>
-          <!-- Benchmark preview: scene + prompts -->
-          <div id="bm-preview" style="margin-top:8px;padding:12px 16px;background:#fafafa;border-radius:8px;border:1px solid #f0f0f0;display:none;">
-            <div style="display:flex;gap:24px;margin-bottom:8px;font-size:13px;">
-              <div><span style="color:rgba(0,0,0,0.45);">\u573a\u666f:</span> <span id="bm-pv-scene" style="font-weight:500;"></span> <span id="bm-pv-type" class="ant-tag ant-tag-cyan" style="font-size:11px;"></span></div>
-              <div><span style="color:rgba(0,0,0,0.45);">\u8bc4\u4ef7\u6807\u51c6:</span> <span id="bm-pv-criteria" style="font-weight:500;"></span></div>
+
+          <!-- Upload zones -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px;">
+            <div>
+              <label style="display:block;font-size:14px;color:rgba(0,0,0,0.85);margin-bottom:8px;">\u573a\u666f\u56fe\u7247</label>
+              <div class="upload-zone" onclick="this.querySelector('input').click()">
+                <input type="file" name="scene_images" multiple accept="image/*" style="display:none;" onchange="window.showFileNames(this)">
+                <div class="upload-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#bfbfbf" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+                <div class="upload-text">\u70b9\u51fb\u6216\u62d6\u62fd\u4e0a\u4f20</div>
+                <div class="upload-hint">JPG / PNG\uff0c\u652f\u6301\u591a\u5f20</div>
+                <div class="upload-files"></div>
+              </div>
             </div>
-            <div style="font-size:12px;color:rgba(0,0,0,0.45);margin-bottom:4px;">\u63d0\u793a\u8bcd\u7ec4:</div>
-            <div id="bm-pv-prompts" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
+            <div>
+              <label style="display:block;font-size:14px;color:rgba(0,0,0,0.85);margin-bottom:8px;">\u91c7\u96c6\u89c6\u9891</label>
+              <div class="upload-zone" onclick="this.querySelector('input').click()">
+                <input type="file" name="capture_videos" multiple accept="video/*" style="display:none;" onchange="window.showFileNames(this)">
+                <div class="upload-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#bfbfbf" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+                <div class="upload-text">\u70b9\u51fb\u6216\u62d6\u62fd\u4e0a\u4f20</div>
+                <div class="upload-hint">MP4\uff0c\u73b0\u573a\u73af\u5883\u5b9e\u62cd</div>
+                <div class="upload-files"></div>
+              </div>
+            </div>
+            <div>
+              <label style="display:block;font-size:14px;color:rgba(0,0,0,0.85);margin-bottom:8px;">\u914d\u91c7\u6f14\u793a\u89c6\u9891</label>
+              <div class="upload-zone" onclick="this.querySelector('input').click()">
+                <input type="file" name="demo_videos" multiple accept="video/*" style="display:none;" onchange="window.showFileNames(this)">
+                <div class="upload-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#bfbfbf" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+                <div class="upload-text">\u70b9\u51fb\u6216\u62d6\u62fd\u4e0a\u4f20</div>
+                <div class="upload-hint">MP4\uff0c\u4eba\u5de5\u64cd\u4f5c\u6f14\u793a</div>
+                <div class="upload-files"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Reference existing modules: prompts / criteria / tags -->
+          <div class="form-row" style="margin-bottom:16px;">
+            <div class="form-group" style="grid-column:1/3;">
+              <label>\u63d0\u793a\u8bcd</label>
+              <div style="position:relative;">
+                <div class="er-dd-trigger" id="ms-prompts-btn" onclick="mselToggle('ms-prompts', event)">
+                  <div id="ms-prompts-chips" class="er-chips"></div>
+                  <span style="margin-left:auto;color:rgba(0,0,0,0.35);font-size:10px;flex-shrink:0;padding-left:4px;">&#9660;</span>
+                </div>
+                <div class="er-dd-panel" id="ms-prompts-panel" style="width:100%;">
+                  <div style="padding:8px 12px;border-bottom:1px solid #f0f0f0;display:flex;gap:16px;align-items:center;">
+                    <a href="javascript:;" onclick="mselToggleAll('ms-prompts', true)" style="font-size:12px;color:#1F80A0;">\u5168\u9009</a>
+                    <a href="javascript:;" onclick="mselToggleAll('ms-prompts', false)" style="font-size:12px;color:rgba(0,0,0,0.45);">\u6e05\u7a7a</a>
+                  </div>
+                  <div style="max-height:240px;overflow-y:auto;padding:6px 0;">
+                    {bm_prompt_ms_opts}
+                  </div>
+                </div>
+                <input type="hidden" name="bm_prompt_ids" id="ms-prompts-hidden" value="">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>\u8bc4\u5b9a\u6807\u51c6</label>
+              <select name="bm_criteria_id">{bm_criteria_opts}</select>
+            </div>
           </div>
         </div>
         <div class="ant-drawer-footer">
@@ -2906,31 +3103,10 @@ def tasks_page():
       d.prompts.forEach(function(p) {{ ph += '<span class="ant-tag">'+p.name+' ('+p.steps+'\u6b65)</span>'; }});
       document.getElementById('bm-pv-prompts').innerHTML = ph;
     }}
-    // Checkpoint multi-select dropdown
-    function ckptSync() {{
-      var wrap = document.getElementById('ts-ckpt');
-      var selected = wrap.querySelectorAll('.ts-row.selected');
-      var trigger = wrap.querySelector('.ts-trigger');
-      var hidden = document.getElementById('ckpt-hidden');
-      var ids = []; var chips = '';
-      selected.forEach(function(r) {{
-        ids.push(r.dataset.id);
-        chips += '<span class="ts-chip"><span class="ts-chip-text">'+r.dataset.path+'</span><span class="ts-chip-close" data-rid="'+r.dataset.id+'" onclick="event.stopPropagation();ckptRemove(this)">&times;</span></span>';
-      }});
-      trigger.innerHTML = chips || '<span class="ts-placeholder">\u9009\u62e9 Checkpoint</span>';
-      hidden.value = ids.join(',');
-    }}
-    function ckptRemove(btn) {{
-      var wrap = document.getElementById('ts-ckpt');
-      var row = wrap.querySelector('.ts-row[data-id="'+btn.dataset.rid+'"]');
-      if (row) row.classList.remove('selected');
-      ckptSync();
-    }}
-    // Task tags tree selector
-    (function() {{
-      var wrap = document.getElementById('ts-task-tags');
+    // Generic tree-selector initializer — used for both task-tags and bm-tags
+    function tagTreeInit(wrapId, hiddenId, placeholder) {{
+      var wrap = document.getElementById(wrapId);
       if (!wrap) return;
-      // Arrow expand/collapse
       wrap.querySelectorAll('.ts-arrow:not(.empty)').forEach(function(arrow) {{
         arrow.addEventListener('click', function(e) {{
           e.stopPropagation();
@@ -2939,34 +3115,34 @@ def tasks_page():
           if (children) children.classList.toggle('expanded');
         }});
       }});
-      // Row select
       wrap.querySelectorAll('.ts-row[data-id]').forEach(function(row) {{
         row.addEventListener('click', function(e) {{
           if (e.target.classList.contains('ts-arrow')) return;
           this.classList.toggle('selected');
-          taskTagSync();
+          tagTreeSync(wrapId, hiddenId, placeholder);
         }});
       }});
-    }})();
-    function taskTagSync() {{
-      var wrap = document.getElementById('ts-task-tags');
+    }}
+    function tagTreeSync(wrapId, hiddenId, placeholder) {{
+      var wrap = document.getElementById(wrapId);
       var selected = wrap.querySelectorAll('.ts-row.selected');
       var trigger = wrap.querySelector('.ts-trigger');
-      var hidden = document.getElementById('task-tags-hidden');
+      var hidden = document.getElementById(hiddenId);
       var ids = []; var chips = '';
       selected.forEach(function(r) {{
         ids.push(r.dataset.id);
-        chips += '<span class="ts-chip"><span class="ts-chip-text">'+r.dataset.path+'</span><span class="ts-chip-close" data-rid="'+r.dataset.id+'" onclick="event.stopPropagation();taskTagRemove(this)">&times;</span></span>';
+        chips += '<span class="ts-chip"><span class="ts-chip-text">'+r.dataset.path+'</span><span class="ts-chip-close" data-rid="'+r.dataset.id+'" data-wrap="'+wrapId+'" data-hidden="'+hiddenId+'" data-placeholder="'+placeholder+'" onclick="event.stopPropagation();tagTreeRemove(this)">&times;</span></span>';
       }});
-      trigger.innerHTML = chips || '<span class="ts-placeholder">\u9009\u62e9\u6807\u7b7e</span>';
+      trigger.innerHTML = chips || '<span class="ts-placeholder">'+placeholder+'</span>';
       if (hidden) hidden.value = ids.join(',');
     }}
-    function taskTagRemove(btn) {{
-      var wrap = document.getElementById('ts-task-tags');
+    function tagTreeRemove(btn) {{
+      var wrap = document.getElementById(btn.dataset.wrap);
       var row = wrap.querySelector('.ts-row[data-id="'+btn.dataset.rid+'"]');
       if (row) row.classList.remove('selected');
-      taskTagSync();
+      tagTreeSync(btn.dataset.wrap, btn.dataset.hidden, btn.dataset.placeholder);
     }}
+    tagTreeInit('ts-task-tags', 'task-tags-hidden', '\u9009\u62e9\u6807\u7b7e');
     function tsToggle(id) {{ document.getElementById(id).classList.toggle('open'); }}
     document.addEventListener('click', function(e) {{
       document.querySelectorAll('.ts-wrap.open').forEach(function(w) {{
@@ -3406,38 +3582,16 @@ def task_data_detail(tid, exec_id):
     ckpt_a = get_model_name(t["model_ids"][0]) if len(t["model_ids"]) > 0 else "--"
     ckpt_b = get_model_name(t["model_ids"][1]) if len(t["model_ids"]) > 1 else "--"
 
-    # Mock data per step
-    import random as _rnd3
-    _rnd3.seed(hash(exec_id))
     current_step = int(request.args.get("step", 0))
     if current_step >= n_steps:
         current_step = n_steps - 1
     if current_step < 0:
         current_step = 0
     step = steps[current_step] if steps else None
-    prog_a = _rnd3.randint(30, 100)
-    prog_b = _rnd3.randint(30, 100)
-    # Reset seed per step for consistent results
-    _rnd3.seed(hash(exec_id + str(current_step)))
-    prog_a = _rnd3.randint(30, 100)
-    prog_b = _rnd3.randint(30, 100)
-    result_val = _rnd3.choice([2, 1, 0])
-    note_text = _rnd3.choice(["Policy A \u62d3\u53d6\u66f4\u7cbe\u51c6", "\u4e24\u8005\u8868\u73b0\u63a5\u8fd1", "Policy B \u5b8c\u6210\u901f\u5ea6\u66f4\u5feb", "\u8def\u5f84\u89c4\u5212\u5408\u7406", ""])
-    pct = round(current_step / max(n_steps, 1) * 100)
-
-    pref_a_cls = "pref-a pref-active" if result_val == 2 else "pref-a"
-    pref_tie_cls = "pref-tie pref-active" if result_val == 1 else "pref-tie"
-    pref_b_cls = "pref-b pref-active" if result_val == 0 else "pref-b"
-
-    task_no = t.get("task_no", tid)
-    page_title = f"\u6267\u884c\u8bb0\u5f55{exec_id}"
-
-    step_hl = prompt["high_level"] if prompt else "--"
-    step_zh = step["zh"] if step else "--"
-    step_en = step["en"] if step else ""
 
     # Build the full flat list of records (same ordering as /eval-records task view)
-    # so \u4e0a\u4e00\u6761 / \u4e0b\u4e00\u6761 walks across tasks, prompts and steps.
+    # Used both for \u4e0a\u4e00\u6761 / \u4e0b\u4e00\u6761 navigation AND as the source of truth
+    # for result_val / prog_a / prog_b so list and detail display the same data.
     import random as _rnd_flat
     flat = []
     for _ft in EVAL_TASKS:
@@ -3450,17 +3604,53 @@ def task_data_detail(tid, exec_id):
             if not _fp:
                 continue
             for _fsi, _fll in enumerate(_fp.get("low_levels", [])):
-                _fresult = _rnd_flat.choice([2, 1, 0])
+                _fresult = _rnd_flat.choice([4, 3, 2, 1, 0])
                 _fexec = f"E{_rnd_flat.randint(1000,9999)}"
-                _rnd_flat.randint(30, 100)
-                _rnd_flat.randint(30, 100)
-                flat.append({"tid": _ft["id"], "exec_id": _fexec, "pid": _fpid, "step": _fsi})
+                _fpa = _rnd_flat.randint(1, 5)
+                _fpb = _rnd_flat.randint(1, 5)
+                flat.append({
+                    "tid": _ft["id"], "exec_id": _fexec, "pid": _fpid, "step": _fsi,
+                    "result": _fresult, "prog_a": _fpa, "prog_b": _fpb,
+                })
 
     cur_idx = -1
     for _i, _r in enumerate(flat):
         if _r["tid"] == tid and _r["exec_id"] == exec_id and _r["pid"] == requested_pid and _r["step"] == current_step:
             cur_idx = _i
             break
+
+    # Source of truth for display: use the flat row if found, otherwise fall back to local seed
+    if cur_idx >= 0:
+        cur_row = flat[cur_idx]
+        prog_a = cur_row["prog_a"]
+        prog_b = cur_row["prog_b"]
+        result_val = cur_row["result"]
+    else:
+        # Fallback for arbitrary exec_id not in flat list
+        import random as _rnd3
+        _rnd3.seed(hash(exec_id + str(current_step)))
+        prog_a = _rnd3.randint(1, 5)
+        prog_b = _rnd3.randint(1, 5)
+        result_val = _rnd3.choice([4, 3, 2, 1, 0])
+
+    # Note text (not shown in list, so independent random is fine)
+    import random as _rnd_note
+    _rnd_note.seed(hash(exec_id + "_note_" + str(current_step)))
+    note_text = _rnd_note.choice(["Policy A \u62d3\u53d6\u66f4\u7cbe\u51c6", "\u4e24\u8005\u8868\u73b0\u63a5\u8fd1", "Policy B \u5b8c\u6210\u901f\u5ea6\u66f4\u5feb", "\u8def\u5f84\u89c4\u5212\u5408\u7406", ""])
+    pct = round(current_step / max(n_steps, 1) * 100)
+
+    pref_a_cls = "pref-a pref-active" if result_val == 4 else "pref-a"
+    pref_tie_a_cls = "pref-tie pref-active" if result_val == 3 else "pref-tie"
+    pref_tie_m_cls = "pref-tie pref-active" if result_val == 2 else "pref-tie"
+    pref_tie_b_cls = "pref-tie pref-active" if result_val == 1 else "pref-tie"
+    pref_b_cls = "pref-b pref-active" if result_val == 0 else "pref-b"
+
+    task_no = t.get("task_no", tid)
+    page_title = f"\u6267\u884c\u8bb0\u5f55{exec_id}"
+
+    step_hl = prompt["high_level"] if prompt else "--"
+    step_zh = step["zh"] if step else "--"
+    step_en = step["en"] if step else ""
 
     def _url_of(r):
         return f'/tasks/{r["tid"]}/data/{r["exec_id"]}?pid={r["pid"]}&step={r["step"]}'
@@ -3519,38 +3709,40 @@ def task_data_detail(tid, exec_id):
 
     <!-- Bottom white card: readonly progress + note + actions -->
     <div style="background:#fff;border-radius:8px;padding:20px;border:1px solid #f0f0f0;">
-      <!-- Progress scores (readonly, theme-colored track) -->
+      <!-- Progress scores (readonly, 1-5) -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:16px;">
         <div style="display:flex;align-items:center;gap:10px;">
           <span style="color:rgba(0,0,0,0.85);font-weight:500;white-space:nowrap;">A:</span>
           <div class="ro-slider" style="flex:1;">
-            <div class="ro-slider-fill" style="width:{prog_a}%;"></div>
-            <div class="ro-slider-thumb" style="left:{prog_a}%;"></div>
+            <div class="ro-slider-fill" style="width:{(prog_a - 1) * 25}%;"></div>
+            <div class="ro-slider-thumb" style="left:{(prog_a - 1) * 25}%;"></div>
           </div>
-          <span style="font-weight:600;color:#1F80A0;min-width:28px;text-align:right;">{prog_a}</span>
-          <span style="font-size:13px;color:rgba(0,0,0,0.35);">/ 100 \u5206</span>
+          <span style="font-weight:600;color:#1F80A0;min-width:14px;text-align:right;">{prog_a}</span>
+          <span style="font-size:13px;color:rgba(0,0,0,0.35);">/ 5 \u5206</span>
         </div>
         <div style="display:flex;align-items:center;gap:10px;">
           <span style="color:rgba(0,0,0,0.85);font-weight:500;white-space:nowrap;">B:</span>
           <div class="ro-slider" style="flex:1;">
-            <div class="ro-slider-fill" style="width:{prog_b}%;"></div>
-            <div class="ro-slider-thumb" style="left:{prog_b}%;"></div>
+            <div class="ro-slider-fill" style="width:{(prog_b - 1) * 25}%;"></div>
+            <div class="ro-slider-thumb" style="left:{(prog_b - 1) * 25}%;"></div>
           </div>
-          <span style="font-weight:600;color:#1F80A0;min-width:28px;text-align:right;">{prog_b}</span>
-          <span style="font-size:13px;color:rgba(0,0,0,0.35);">/ 100 \u5206</span>
+          <span style="font-weight:600;color:#1F80A0;min-width:14px;text-align:right;">{prog_b}</span>
+          <span style="font-size:13px;color:rgba(0,0,0,0.35);">/ 5 \u5206</span>
         </div>
       </div>
       <!-- Note (readonly) -->
       <div style="margin-bottom:20px;">
         <textarea rows="2" readonly style="width:100%;padding:10px 14px;border:1px solid #d9d9d9;border-radius:8px;font-size:14px;resize:vertical;box-sizing:border-box;background:#fafafa;color:rgba(0,0,0,0.65);">{note_text if note_text else "--"}</textarea>
       </div>
-      <!-- Bottom actions -->
+      <!-- Bottom actions: 5 preference options -->
       <div style="display:flex;align-items:center;">
         <div style="flex-shrink:0;">{prev_link}</div>
-        <div style="display:flex;gap:8px;flex:1;justify-content:center;">
-          <span class="pref-opt {pref_a_cls}" style="flex:1;max-width:200px;padding:10px 0;font-size:14px;text-align:center;cursor:default;">A \u80dc</span>
-          <span class="pref-opt {pref_tie_cls}" style="flex:1;max-width:200px;padding:10px 0;font-size:14px;text-align:center;cursor:default;">\u5e73\u5c40</span>
-          <span class="pref-opt {pref_b_cls}" style="flex:1;max-width:200px;padding:10px 0;font-size:14px;text-align:center;cursor:default;">B \u80dc</span>
+        <div style="display:flex;gap:6px;flex:1;justify-content:center;">
+          <span class="pref-opt {pref_a_cls}" style="flex:1;max-width:140px;padding:10px 0;font-size:14px;text-align:center;cursor:default;">A \u80dc</span>
+          <span class="pref-opt {pref_tie_a_cls}" style="flex:1;max-width:140px;padding:10px 0;font-size:14px;text-align:center;cursor:default;">\u90fd\u597d</span>
+          <span class="pref-opt {pref_tie_m_cls}" style="flex:1;max-width:140px;padding:10px 0;font-size:14px;text-align:center;cursor:default;">\u90fd\u4e00\u822c</span>
+          <span class="pref-opt {pref_tie_b_cls}" style="flex:1;max-width:140px;padding:10px 0;font-size:14px;text-align:center;cursor:default;">\u90fd\u5dee</span>
+          <span class="pref-opt {pref_b_cls}" style="flex:1;max-width:140px;padding:10px 0;font-size:14px;text-align:center;cursor:default;">B \u80dc</span>
         </div>
         <div style="flex-shrink:0;">{next_link}</div>
       </div>
@@ -4666,30 +4858,34 @@ def evaluate2_run(task_id):
 
     <!-- Bottom white card: progress + note + buttons -->
     <div style="background:#fff;border-radius:8px;padding:20px;border:1px solid #f0f0f0;">
-      <!-- Progress scores -->
+      <!-- Progress scores (1-5) -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:16px;">
         <div style="display:flex;align-items:center;gap:8px;">
-          <input type="range" id="v2-prog-a" min="0" max="100" step="1" value="0" style="flex:1;accent-color:#1F80A0;">
-          <span id="v2-prog-a-v" style="font-weight:600;color:#1F80A0;">0</span>
-          <span style="font-size:13px;color:rgba(0,0,0,0.35);">/ 100 \u5206</span>
+          <span style="color:rgba(0,0,0,0.85);font-weight:500;">A:</span>
+          <input type="range" id="v2-prog-a" min="1" max="5" step="1" value="1" style="flex:1;accent-color:#1F80A0;">
+          <span id="v2-prog-a-v" style="font-weight:600;color:#1F80A0;min-width:14px;text-align:right;">1</span>
+          <span style="font-size:13px;color:rgba(0,0,0,0.35);">/ 5 \u5206</span>
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
-          <input type="range" id="v2-prog-b" min="0" max="100" step="1" value="0" style="flex:1;accent-color:#1F80A0;">
-          <span id="v2-prog-b-v" style="font-weight:600;color:#1F80A0;">0</span>
-          <span style="font-size:13px;color:rgba(0,0,0,0.35);">/ 100 \u5206</span>
+          <span style="color:rgba(0,0,0,0.85);font-weight:500;">B:</span>
+          <input type="range" id="v2-prog-b" min="1" max="5" step="1" value="1" style="flex:1;accent-color:#1F80A0;">
+          <span id="v2-prog-b-v" style="font-weight:600;color:#1F80A0;min-width:14px;text-align:right;">1</span>
+          <span style="font-size:13px;color:rgba(0,0,0,0.35);">/ 5 \u5206</span>
         </div>
       </div>
       <!-- Note -->
       <div style="margin-bottom:20px;">
         <textarea id="v2-note" rows="2" placeholder="\u8bf7\u8f93\u5165\u9009\u62e9\u539f\u56e0\uff0c\u5fc5\u586b\u3002\u53ef\u4ee5\u4ece\u62d3\u53d6\u7cbe\u5ea6\u3001\u8def\u5f84\u89c4\u5212\u3001\u52a8\u4f5c\u6d41\u7545\u5ea6\u3001\u5f02\u5e38\u6062\u590d\u80fd\u529b\u3001\u4efb\u52a1\u5b8c\u6210\u5ea6\u7b49\u65b9\u9762\u8bc4\u4ef7" style="width:100%;padding:10px 14px;border:1px solid #d9d9d9;border-radius:8px;font-size:14px;resize:vertical;box-sizing:border-box;"></textarea>
       </div>
-      <!-- Bottom actions -->
+      <!-- Bottom actions: 5 preference options -->
       <div style="display:flex;align-items:center;">
         <div style="flex-shrink:0;">{prev_link}</div>
-        <div style="display:flex;gap:8px;flex:1;justify-content:center;">
-          <button type="button" class="pref-opt pref-a" onclick="v2SetPref(2,this)" style="flex:1;max-width:200px;padding:10px 0;font-size:14px;text-align:center;">A \u80dc</button>
-          <button type="button" class="pref-opt pref-tie" onclick="v2SetPref(1,this)" style="flex:1;max-width:200px;padding:10px 0;font-size:14px;text-align:center;">\u5e73\u5c40</button>
-          <button type="button" class="pref-opt pref-b" onclick="v2SetPref(0,this)" style="flex:1;max-width:200px;padding:10px 0;font-size:14px;text-align:center;">B \u80dc</button>
+        <div style="display:flex;gap:6px;flex:1;justify-content:center;">
+          <button type="button" class="pref-opt pref-a" onclick="v2SetPref(4,this)" style="flex:1;max-width:140px;padding:10px 0;font-size:14px;text-align:center;">A \u80dc</button>
+          <button type="button" class="pref-opt pref-tie" onclick="v2SetPref(3,this)" style="flex:1;max-width:140px;padding:10px 0;font-size:14px;text-align:center;">\u90fd\u597d</button>
+          <button type="button" class="pref-opt pref-tie" onclick="v2SetPref(2,this)" style="flex:1;max-width:140px;padding:10px 0;font-size:14px;text-align:center;">\u90fd\u4e00\u822c</button>
+          <button type="button" class="pref-opt pref-tie" onclick="v2SetPref(1,this)" style="flex:1;max-width:140px;padding:10px 0;font-size:14px;text-align:center;">\u90fd\u5dee</button>
+          <button type="button" class="pref-opt pref-b" onclick="v2SetPref(0,this)" style="flex:1;max-width:140px;padding:10px 0;font-size:14px;text-align:center;">B \u80dc</button>
         </div>
         <a href="javascript:;" onclick="v2Submit()" style="color:#1F80A0;text-decoration:none;font-size:14px;flex-shrink:0;">{submit_text} &rarr;</a>
       </div>
@@ -4717,7 +4913,7 @@ def evaluate2_run(task_id):
     }});
     function v2Submit() {{
       if (v2Pref === null || v2Pref === undefined) {{
-        window.showToast('\u8bf7\u9009\u62e9\u504f\u597d (A \u80dc / \u5e73\u5c40 / B \u80dc)', 'warning');
+        window.showToast('\u8bf7\u9009\u62e9\u504f\u597d', 'warning');
         return;
       }}
       var noteEl = document.getElementById('v2-note');
@@ -4767,10 +4963,10 @@ def eval_records_page():
             if not p:
                 continue
             for ll in p.get("low_levels", []):
-                result_val = _rnd_er.choice([2, 1, 0])
+                result_val = _rnd_er.choice([4, 3, 2, 1, 0])
                 exec_id = f"E{_rnd_er.randint(1000,9999)}"
-                prog_a = _rnd_er.randint(30, 100)
-                prog_b = _rnd_er.randint(30, 100)
+                prog_a = _rnd_er.randint(1, 5)
+                prog_b = _rnd_er.randint(1, 5)
                 task_rows.append({
                     "task_id": t["id"],
                     "task_no": t.get("task_no", ""),
@@ -4806,16 +5002,21 @@ def eval_records_page():
                 if not p:
                     continue
                 for ll in p.get("low_levels", []):
-                    result_val = _rnd_er.choice([2, 1, 0])
+                    result_val = _rnd_er.choice([4, 3, 2, 1, 0])
                     exec_id = f"E{_rnd_er.randint(1000,9999)}"
-                    _rnd_er.randint(30, 100)  # consume prog_a
-                    _rnd_er.randint(30, 100)  # consume prog_b
-                    if result_val == 1:
-                        res_label = "\u5e73\u5c40"
-                    elif (result_val == 2 and role == "A") or (result_val == 0 and role == "B"):
-                        res_label = "\u80dc\u5229"
-                    else:
-                        res_label = "\u5931\u8d25"
+                    _rnd_er.randint(1, 5)  # consume prog_a
+                    _rnd_er.randint(1, 5)  # consume prog_b
+                    # Map 5-level result to model's perspective
+                    if result_val == 4:
+                        res_label = "\u80dc\u5229" if role == "A" else "\u5931\u8d25"
+                    elif result_val == 0:
+                        res_label = "\u5931\u8d25" if role == "A" else "\u80dc\u5229"
+                    elif result_val == 3:
+                        res_label = "\u90fd\u597d"
+                    elif result_val == 2:
+                        res_label = "\u90fd\u4e00\u822c"
+                    else:  # result_val == 1
+                        res_label = "\u90fd\u5dee"
                     ckpt_rows.append({
                         "task_id": t["id"],
                         "task_no": t.get("task_no", ""),
@@ -4833,15 +5034,22 @@ def eval_records_page():
     # ── Render task view table ──
     task_rows_html = ""
     for r in task_rows:
-        if r["result"] == 2:
+        rv = r["result"]
+        if rv == 4:
             r_tag = '<span class="ant-tag" style="background:#e6f4f8;color:#1F80A0;border-color:#8dcde0;">A \u80dc</span>'
             r_key = "A\u80dc"
-        elif r["result"] == 0:
+        elif rv == 3:
+            r_tag = '<span class="ant-tag">\u90fd\u597d</span>'
+            r_key = "\u90fd\u597d"
+        elif rv == 2:
+            r_tag = '<span class="ant-tag">\u90fd\u4e00\u822c</span>'
+            r_key = "\u90fd\u4e00\u822c"
+        elif rv == 1:
+            r_tag = '<span class="ant-tag">\u90fd\u5dee</span>'
+            r_key = "\u90fd\u5dee"
+        else:
             r_tag = '<span class="ant-tag" style="background:#fff7e6;color:#ad6800;border-color:#ffd591;">B \u80dc</span>'
             r_key = "B\u80dc"
-        else:
-            r_tag = '<span class="ant-tag">\u5e73\u5c40</span>'
-            r_key = "\u5e73\u5c40"
         detail_url = f"/tasks/{r['task_id']}/data/{r['exec_id']}?pid={r['prompt_id']}"
         task_rows_html += (
             f'<tr data-taskid="{r["task_id"]}" data-result="{r_key}" data-hl="{r["high_level"]}" data-ll="{r["low_level"]}">'
@@ -4867,7 +5075,8 @@ def eval_records_page():
         elif r["result"] == "\u5931\u8d25":
             tag_html = '<span class="ant-tag" style="background:#fff1f0;color:#ff4d4f;border-color:#ffa39e;">\u5931\u8d25</span>'
         else:
-            tag_html = '<span class="ant-tag">\u5e73\u5c40</span>'
+            # \u90fd\u597d / \u90fd\u4e00\u822c / \u90fd\u5dee
+            tag_html = f'<span class="ant-tag">{r["result"]}</span>'
         detail_url = f"/tasks/{r['task_id']}/data/{r['exec_id']}?pid={r['prompt_id']}"
         ckpt_rows_html += (
             f'<tr data-mid="{r["model_id"]}" data-result="{r["result"]}" data-taskno="{r["task_no"]}" data-taskname="{r["task_name"]}" data-hl="{r["high_level"]}" data-ll="{r["low_level"]}">'
