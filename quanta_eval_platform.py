@@ -836,16 +836,20 @@ a:hover { color: #176a88; }
 /* ── Form layout ── */
 .form-group { margin-bottom: 16px; }
 .form-group label { display: block; font-size: 14px; color: rgba(0,0,0,0.85); margin-bottom: 4px; }
-.form-group input[type="text"], .form-group input[type="number"], .form-group select, .form-group textarea,
+.form-group input[type="text"], .form-group input[type="number"], .form-group input[type="date"], .form-group input[type="time"], .form-group input[type="datetime-local"], .form-group input[type="email"], .form-group input[type="password"], .form-group input[type="url"], .form-group select, .form-group textarea,
 .filter-bar input, .filter-bar select { padding: 5px 12px; height: 36px; border: 1px solid #d9d9d9; border-radius: 8px; font-size: 14px; color: rgba(0,0,0,0.85); outline: none; transition: all 0.3s; font-family: inherit; box-sizing: border-box; -webkit-appearance: none; appearance: none; background: #fff; }
 .form-group select, .filter-bar select { padding-right: 32px; background: #fff url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23595959' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center; }
+/* Date/time inputs — enable full-field click to open picker */
+.form-group input[type="date"], .form-group input[type="time"], .form-group input[type="datetime-local"] { -webkit-appearance: auto; appearance: auto; cursor: pointer; }
+.form-group input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.55; }
+.form-group input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
 .form-group input:focus, .form-group select:focus, .form-group textarea:focus,
 .filter-bar input:focus, .filter-bar select:focus { border-color: #1F80A0; box-shadow: 0 0 0 2px rgba(31,128,160,0.12); }
 .filter-bar select, .form-group select { color: rgba(0,0,0,0.25); }
 .filter-bar select.has-value, .form-group select.has-value { color: rgba(0,0,0,0.85); }
 .filter-bar select option, .form-group select option { color: rgba(0,0,0,0.85); }
 .filter-bar select option[value=""], .form-group select option[value=""] { color: rgba(0,0,0,0.25); }
-.form-group input[type="text"], .form-group input[type="number"] { width: 100%; }
+.form-group input[type="text"], .form-group input[type="number"], .form-group input[type="date"], .form-group input[type="time"], .form-group input[type="datetime-local"], .form-group input[type="email"], .form-group input[type="password"], .form-group input[type="url"] { width: 100%; }
 .form-group textarea { width: 100%; height: auto; min-height: 80px; }
 .form-group select { width: 100%; }
 .form-group select[multiple] { height: auto; min-height: 80px; padding-right: 12px; background-image: none; }
@@ -1020,6 +1024,14 @@ a:hover { color: #176a88; }
 .q-toast.q-toast-error { border-left:4px solid #ff4d4f; padding-left:14px; }
 .q-toast.q-toast-error::before { background:#ff4d4f; content:'\2715'; }
 
+/* ── Media gallery (images & videos) ── */
+.media-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.media-card { width: 140px; border: 1px solid #f0f0f0; border-radius: 8px; background: #fff; overflow: hidden; cursor: pointer; transition: all 0.15s; }
+.media-card:hover { border-color: #1F80A0; box-shadow: 0 2px 8px rgba(31,128,160,0.15); transform: translateY(-1px); }
+.media-thumb { height: 80px; background: #e6f4f8; display: flex; align-items: center; justify-content: center; }
+.media-thumb-video { background: #1a1a2e; }
+.media-desc { padding: 6px 10px; font-size: 12px; color: rgba(0,0,0,0.65); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-top: 1px solid #f5f5f5; }
+
 /* ── Upload zone (shared between /scenes and /tasks) ── */
 .upload-zone { border: 1px dashed #d9d9d9; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; background: #fafafa; }
 .upload-zone:hover { border-color: #1F80A0; background: #f0f9fb; }
@@ -1090,14 +1102,12 @@ BASE_TEMPLATE = """<!DOCTYPE html>
     <a href="/eval-records" class="nav-item {{ 'active' if active=='eval_records' }}"><span class="icon">&#9776;</span> \u8bc4\u6d4b\u7ed3\u679c\u8bb0\u5f55</a>
     <div class="nav-label">\u8bc4\u6d4b\u6267\u884c</div>
     <a href="/collect" class="nav-item {{ 'active' if active=='collect' }}"><span class="icon">&#9783;</span> \u8bc4\u6d4b\u6570\u636e\u91c7\u96c6</a>
-    <a href="/evaluate2" class="nav-item {{ 'active' if active=='evaluate2' }}"><span class="icon">&#9878;</span> \u8bc4\u6d4b\u5de5\u4f5c\u53f0-LL</a>
-    <a href="/evaluate" class="nav-item {{ 'active' if active=='evaluate' }}"><span class="icon">&#9878;</span> \u8bc4\u6d4b\u5de5\u4f5c\u53f0-HL</a>
+    <a href="/evaluate2" class="nav-item {{ 'active' if active=='evaluate2' }}"><span class="icon">&#9878;</span> \u8bc4\u6d4b\u5de5\u4f5c\u53f0</a>
     <div class="nav-label">\u6570\u636e\u770b\u677f</div>
     <a href="/leaderboard" class="nav-item {{ 'active' if active=='leaderboard' }}"><span class="icon">&#9733;</span> \u6392\u884c\u699c</a>
     <a href="/analysis" class="nav-item {{ 'active' if active=='analysis' }}"><span class="icon">&#9636;</span> \u591a\u7ef4\u5206\u6790</a>
     <div class="nav-label">\u914d\u7f6e\u7ba1\u7406</div>
     <a href="/benchmarks" class="nav-item {{ 'active' if active=='benchmarks' }}"><span class="icon">&#9776;</span> Benchmark \u7ba1\u7406</a>
-    <a href="/scenes" class="nav-item {{ 'active' if active=='scenes' }}"><span class="icon">&#9708;</span> \u573a\u666f\u7ba1\u7406</a>
     <a href="/prompts" class="nav-item {{ 'active' if active=='prompts' }}"><span class="icon">&#9998;</span> \u63d0\u793a\u8bcd\u7ba1\u7406</a>
     <a href="/criteria" class="nav-item {{ 'active' if active=='criteria' }}"><span class="icon">&#9745;</span> \u8bc4\u4ef7\u6807\u51c6\u7ba1\u7406</a>
     <a href="/tags" class="nav-item {{ 'active' if active=='tags' }}"><span class="icon">&#9873;</span> \u6807\u7b7e\u7ba1\u7406</a>
@@ -1129,6 +1139,17 @@ BASE_TEMPLATE = """<!DOCTYPE html>
     {% endwith %}
     {{ content|safe }}
   </div>
+
+  <!-- Global media viewer modal -->
+  <div class="ant-drawer-mask" id="q-media-viewer">
+    <div class="ant-drawer-content" style="width:720px;max-width:90vw;">
+      <div class="ant-drawer-header">
+        <h3 id="q-media-title">\u9884\u89c8</h3>
+        <button class="ant-drawer-close" onclick="closeModal('q-media-viewer')">&times;</button>
+      </div>
+      <div class="ant-drawer-body" id="q-media-body" style="display:flex;align-items:center;justify-content:center;min-height:320px;background:#fafafa;"></div>
+    </div>
+  </div>
 </div>
 </div>
 <script>
@@ -1154,6 +1175,40 @@ document.querySelectorAll('input[type="range"]').forEach(s => {
 function openModal(id) { const e=document.getElementById(id); e.style.display='block'; requestAnimationFrame(()=>e.classList.add('active')); }
 function closeModal(id) { const e=document.getElementById(id); e.classList.remove('active'); setTimeout(()=>{e.style.display='none';},300); }
 document.querySelectorAll('.ant-drawer-mask').forEach(m => { m.addEventListener('click',(e)=>{ if(e.target===m) closeModal(m.id); }); });
+
+// Click anywhere on a date/time input opens its native picker (Chrome/Edge/Safari)
+document.addEventListener('click', function(e) {
+  var el = e.target;
+  if (el && el.matches && el.matches('input[type="date"], input[type="time"], input[type="datetime-local"]')) {
+    if (typeof el.showPicker === 'function') {
+      try { el.showPicker(); } catch (err) { /* ignore */ }
+    }
+  }
+});
+
+// Global media viewer — shows image/video placeholder in a modal
+window.openMediaViewer = function(kind, idx, desc, url) {
+  var body = document.getElementById('q-media-body');
+  var title = document.getElementById('q-media-title');
+  if (!body || !title) return;
+  title.textContent = (kind === 'video' ? '视频预览' : '图片预览') + (desc ? ' — ' + desc : '');
+  if (kind === 'video') {
+    body.innerHTML = ''
+      + '<div style="width:100%;max-width:640px;aspect-ratio:16/9;background:#1a1a2e;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:rgba(255,255,255,0.85);gap:12px;">'
+      + '<svg width="56" height="56" viewBox="0 0 24 24" fill="rgba(255,255,255,0.85)"><polygon points="6 4 20 12 6 20"/></svg>'
+      + '<div style="font-size:14px;">' + (desc || '视频占位') + '</div>'
+      + '<div style="font-size:12px;color:rgba(255,255,255,0.45);">' + (url || '—') + '</div>'
+      + '</div>';
+  } else {
+    body.innerHTML = ''
+      + '<div style="width:100%;max-width:640px;aspect-ratio:16/9;background:linear-gradient(135deg,#e6f4f8,#c7e5ee);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#1F80A0;gap:12px;">'
+      + '<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#1F80A0" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>'
+      + '<div style="font-size:14px;font-weight:500;">' + (desc || '图片占位') + '</div>'
+      + '<div style="font-size:12px;color:rgba(0,0,0,0.45);">' + (url || '—') + '</div>'
+      + '</div>';
+  }
+  openModal('q-media-viewer');
+};
 
 // Global upload-zone: show file names + drag-drop
 window.showFileNames = function(input) {
@@ -1691,7 +1746,7 @@ def prompts_page():
     document.querySelectorAll('.ts-wrap').forEach(w => tsInit(w));
     </script>
     '''
-    return render_page("\u63d0\u793a\u8bcd\u7ba1\u7406", NOTICE_MVP + content, active="prompts")
+    return render_page("\u63d0\u793a\u8bcd\u7ba1\u7406", content, active="prompts")
 
 
 @app.route("/prompts/create", methods=["POST"])
@@ -1921,7 +1976,7 @@ def tags_page():
     }}
     </script>
     '''
-    return render_page("\u6807\u7b7e\u7ba1\u7406", NOTICE_MVP + content, active="tags")
+    return render_page("\u6807\u7b7e\u7ba1\u7406", content, active="tags")
 
 
 # ── Criteria Management ──
@@ -2200,91 +2255,64 @@ def criteria_detail(cid):
 # ── Scene Management ──
 @app.route("/scenes")
 def scenes_page():
-    cards = ""
+    # Build table rows (only 5 fields: name, description, props, images, videos)
+    rows = ""
     for sc in SCENES:
-        env = sc.get("environment", {})
-        ws = env.get("workspace", {})
-        cond = env.get("conditions", {})
-        objs = sc.get("objects", [])
+        # Props fallback from objects
+        props_raw = sc.get("props", "").strip()
+        if not props_raw:
+            props_raw = "\u3001".join(o.get("name", "") for o in sc.get("objects", []) if o.get("name"))
+        prop_tags = ""
+        if props_raw:
+            for prop in [x.strip() for x in props_raw.replace("\uff0c", ",").replace("\u3001", ",").split(",") if x.strip()][:4]:
+                prop_tags += f'<span class="ant-tag">{prop}</span>'
+            total_props = len([x for x in props_raw.replace("\uff0c", ",").replace("\u3001", ",").split(",") if x.strip()])
+            if total_props > 4:
+                prop_tags += f'<span class="ant-tag">+{total_props-4}</span>'
+        if not prop_tags:
+            prop_tags = '<span style="color:rgba(0,0,0,0.25);">\u2014</span>'
+
         refs = sc.get("references", {})
         img_count = len(refs.get("images", []))
-        cap_count = len(refs.get("capture_videos", []))
-        demo_count = len(refs.get("demo_videos", []))
-        obj_total = sum(o.get("count", 1) for o in objs)
+        vid_count = len(refs.get("capture_videos", [])) + len(refs.get("demo_videos", []))
 
-        # Object tags
-        obj_tags = " ".join(f'<span class="ant-tag">{o["name"]} \u00d7{o.get("count",1)}</span>' for o in objs[:4])
-        if len(objs) > 4:
-            obj_tags += f'<span class="ant-tag">+{len(objs)-4}</span>'
-
-        # Reference badges
-        ref_badges = ""
-        if img_count:
-            ref_badges += f'<span class="ant-tag ant-tag-blue">\u56fe\u7247 {img_count}</span>'
-        if cap_count:
-            ref_badges += f'<span class="ant-tag ant-tag-green">\u91c7\u96c6\u89c6\u9891 {cap_count}</span>'
-        if demo_count:
-            ref_badges += f'<span class="ant-tag ant-tag-purple">\u6f14\u793a\u89c6\u9891 {demo_count}</span>'
-        if not ref_badges:
-            ref_badges = '<span class="ant-tag">\u65e0</span>'
-
-        edit_btn = icon_btn(f"/scenes/{sc['id']}", ICON_VIEW, "\u67e5\u770b", "default")
+        view_btn = icon_btn(f"/scenes/{sc['id']}", ICON_VIEW, "\u67e5\u770b", "default")
         copy_btn = icon_btn("#", ICON_COPY, "\u590d\u5236", "default")
         del_btn = icon_btn("#", ICON_DELETE, "\u5220\u9664", "danger")
 
-        cards += f'''
-        <div class="ant-card ant-card-bordered" style="margin-bottom:16px;">
-          <div class="ant-card-body" style="padding:20px;">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
-              <div>
-                <span style="font-size:16px;font-weight:500;">{sc["name"]}</span>
-                <span class="ant-tag ant-tag-cyan" style="margin-left:8px;">{env.get("type","")}</span>
-              </div>
-              <div style="white-space:nowrap;">{edit_btn}{copy_btn}{del_btn}</div>
-            </div>
-            <div style="font-size:13px;color:rgba(0,0,0,0.45);margin-bottom:12px;">{sc["description"]}</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-              <div style="background:#fafafa;border-radius:8px;padding:12px;">
-                <div style="font-size:12px;color:rgba(0,0,0,0.45);margin-bottom:6px;">\u73af\u5883\u4fe1\u606f</div>
-                <div style="font-size:13px;display:grid;grid-template-columns:auto 1fr;gap:2px 12px;">
-                  <span style="color:rgba(0,0,0,0.45);">\u5de5\u4f5c\u533a</span><span>{ws.get("length",0)}\u00d7{ws.get("width",0)}\u00d7{ws.get("height",0)} cm</span>
-                  <span style="color:rgba(0,0,0,0.45);">\u5149\u7167</span><span>{cond.get("lighting","--")}</span>
-                  <span style="color:rgba(0,0,0,0.45);">\u53f0\u9762</span><span>{cond.get("surface","--")}</span>
-                </div>
-              </div>
-              <div style="background:#fafafa;border-radius:8px;padding:12px;">
-                <div style="font-size:12px;color:rgba(0,0,0,0.45);margin-bottom:6px;">\u7269\u4f53\u6e05\u5355 ({len(objs)} \u79cd / {obj_total} \u4e2a)</div>
-                <div>{obj_tags}</div>
-              </div>
-            </div>
-            <div style="margin-top:10px;display:flex;align-items:center;gap:8px;">
-              <span style="font-size:12px;color:rgba(0,0,0,0.45);">\u53c2\u8003\u8d44\u6599:</span>{ref_badges}
-              <span style="flex:1;"></span>
-              <span style="font-size:12px;color:rgba(0,0,0,0.35);">{sc["creator"]} \u00b7 {sc["created_at"]}</span>
-            </div>
-          </div>
-        </div>'''
-
-    env_types = sorted(set(sc.get("environment", {}).get("type", "") for sc in SCENES))
-    type_options = "".join(f"<option>{t}</option>" for t in env_types)
+        rows += (
+            "<tr>"
+            f'<td style="font-weight:500;">{sc["name"]}</td>'
+            f'<td style="max-width:260px;color:rgba(0,0,0,0.65);" title="{sc.get("description","")}"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{sc.get("description","--") or "--"}</div></td>'
+            f'<td style="max-width:260px;"><div style="display:flex;flex-wrap:wrap;gap:2px;">{prop_tags}</div></td>'
+            f'<td style="text-align:center;">{img_count}</td>'
+            f'<td style="text-align:center;">{vid_count}</td>'
+            f'<td class="actions-cell">{view_btn}{copy_btn}{del_btn}</td>'
+            "</tr>"
+        )
 
     content = f'''
-    <div class="stat-grid">
-      <div class="stat-card"><div class="stat-label">\u573a\u666f\u603b\u6570</div><div class="stat-value">{len(SCENES)}</div></div>
-      <div class="stat-card"><div class="stat-label">\u7269\u4f53\u79cd\u7c7b</div><div class="stat-value">{sum(len(sc.get("objects",[])) for sc in SCENES)}</div></div>
-      <div class="stat-card"><div class="stat-label">\u53c2\u8003\u8d44\u6599</div><div class="stat-value">{sum(len(sc.get("references",{}).get("images",[]))+len(sc.get("references",{}).get("capture_videos",[]))+len(sc.get("references",{}).get("demo_videos",[])) for sc in SCENES)}</div></div>
-    </div>
-
     <div class="filter-bar">
-      <input type="text" placeholder="\u641c\u7d22\u573a\u666f" style="min-width:180px;">
-      <select style="min-width:130px;"><option value="">\u5168\u90e8\u73af\u5883\u7c7b\u578b</option>{type_options}</select>
+      <input type="text" placeholder="\u641c\u7d22\u573a\u666f\u540d\u79f0" style="min-width:180px;">
       <button class="ant-btn" onclick="clearFilters()">\u6e05\u7a7a</button>
       <button class="ant-btn ant-btn-primary" onclick="doSearch()">\u641c\u7d22</button>
       <div style="flex:1;"></div>
-      <button class="ant-btn ant-btn-primary" onclick="openModal(\'create-scene-drawer\')">+ \u65b0\u589e\u573a\u666f</button>
+      <button class="ant-btn ant-btn-primary" onclick="openModal('create-scene-drawer')">+ \u65b0\u589e\u573a\u666f</button>
     </div>
 
-    {cards}
+    <div class="ant-card ant-card-bordered">
+      <table class="ant-table">
+        <thead><tr>
+          <th>\u573a\u666f\u540d\u79f0</th>
+          <th>\u573a\u666f\u63cf\u8ff0</th>
+          <th>\u4efb\u52a1\u9053\u5177</th>
+          <th style="width:80px;text-align:center;">\u573a\u666f\u56fe\u7247</th>
+          <th style="width:80px;text-align:center;">\u573a\u666f\u89c6\u9891</th>
+          <th style="width:120px;">\u64cd\u4f5c</th>
+        </tr></thead>
+        <tbody>{rows}</tbody>
+      </table>
+    </div>
 
     <!-- Create Scene Drawer -->
     <div class="ant-drawer-mask" id="create-scene-drawer">
@@ -2292,60 +2320,29 @@ def scenes_page():
         <div class="ant-drawer-header"><h3>\u65b0\u589e\u573a\u666f</h3><button class="ant-drawer-close" onclick="closeModal('create-scene-drawer')">&times;</button></div>
         <form method="POST" action="/scenes/create">
         <div class="ant-drawer-body">
-          <div class="form-row">
-            <div class="form-group"><label>\u573a\u666f\u540d\u79f0</label><input type="text" name="name" required></div>
-            <div class="form-group"><label>\u73af\u5883\u7c7b\u578b</label><input type="text" name="env_type" placeholder="\u5ba4\u5185-\u684c\u9762"></div>
-            <div class="form-group"></div>
-          </div>
-          <div class="form-group"><label>\u63cf\u8ff0</label><textarea name="description" rows="2"></textarea></div>
-          <h4 style="font-size:14px;font-weight:500;margin:16px 0 8px;">\u5de5\u4f5c\u533a\u5c3a\u5bf8 (cm)</h4>
-          <div class="form-row">
-            <div class="form-group"><label>\u957f</label><input type="number" name="ws_length" value="120"></div>
-            <div class="form-group"><label>\u5bbd</label><input type="number" name="ws_width" value="80"></div>
-            <div class="form-group"><label>\u9ad8</label><input type="number" name="ws_height" value="75"></div>
-          </div>
-          <div class="form-row">
-            <div class="form-group"><label>\u5149\u7167\u6761\u4ef6</label><input type="text" name="lighting" placeholder="\u5747\u5300\u65e5\u5149\u706f (500lux)"></div>
-            <div class="form-group"><label>\u53f0\u9762\u6750\u8d28</label><input type="text" name="surface" placeholder="\u767d\u8272\u54d1\u5149\u684c\u9762"></div>
-            <div class="form-group"></div>
-          </div>
+          <div class="form-group"><label>\u573a\u666f\u540d\u79f0</label><input type="text" name="name" required></div>
+          <div class="form-group"><label>\u573a\u666f\u63cf\u8ff0</label><textarea name="description" rows="3" placeholder="\u63cf\u8ff0\u573a\u666f\u73af\u5883\u3001\u5149\u7167\u6761\u4ef6\u3001\u684c\u9762\u7269\u4f53\u5e03\u7f6e\u7b49\u5173\u952e\u4fe1\u606f"></textarea></div>
+          <div class="form-group"><label>\u4efb\u52a1\u9053\u5177</label><input type="text" name="props" placeholder="\u7528\u9017\u53f7\u5206\u9694\uff0c\u5982\uff1a\u7ea2\u8272\u7cd6\u679c\u3001\u84dd\u8272\u6876\u3001\u6728\u52fa"></div>
 
           <hr style="border:none;border-top:1px solid #f0f0f0;margin:20px 0;">
-          <h4 style="font-size:14px;font-weight:500;margin-bottom:12px;">\u53c2\u8003\u8d44\u6599</h4>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
-            <div class="upload-group">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div>
               <label style="display:block;font-size:14px;color:rgba(0,0,0,0.85);margin-bottom:8px;">\u573a\u666f\u56fe\u7247</label>
               <div class="upload-zone" onclick="this.querySelector('input').click()">
-                <input type="file" name="images" multiple accept="image/*" style="display:none;" onchange="showFileNames(this)">
-                <div class="upload-icon">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#bfbfbf" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                </div>
+                <input type="file" name="images" multiple accept="image/*" style="display:none;" onchange="window.showFileNames(this)">
+                <div class="upload-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#bfbfbf" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
                 <div class="upload-text">\u70b9\u51fb\u6216\u62d6\u62fd\u4e0a\u4f20</div>
                 <div class="upload-hint">JPG / PNG\uff0c\u652f\u6301\u591a\u5f20</div>
                 <div class="upload-files"></div>
               </div>
             </div>
-            <div class="upload-group">
-              <label style="display:block;font-size:14px;color:rgba(0,0,0,0.85);margin-bottom:8px;">\u91c7\u96c6\u89c6\u9891</label>
+            <div>
+              <label style="display:block;font-size:14px;color:rgba(0,0,0,0.85);margin-bottom:8px;">\u573a\u666f\u89c6\u9891</label>
               <div class="upload-zone" onclick="this.querySelector('input').click()">
-                <input type="file" name="capture_videos" multiple accept="video/*" style="display:none;" onchange="showFileNames(this)">
-                <div class="upload-icon">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#bfbfbf" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                </div>
+                <input type="file" name="videos" multiple accept="video/*" style="display:none;" onchange="window.showFileNames(this)">
+                <div class="upload-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#bfbfbf" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
                 <div class="upload-text">\u70b9\u51fb\u6216\u62d6\u62fd\u4e0a\u4f20</div>
-                <div class="upload-hint">MP4\uff0c\u73b0\u573a\u73af\u5883\u5b9e\u62cd</div>
-                <div class="upload-files"></div>
-              </div>
-            </div>
-            <div class="upload-group">
-              <label style="display:block;font-size:14px;color:rgba(0,0,0,0.85);margin-bottom:8px;">\u914d\u91c7\u6f14\u793a\u89c6\u9891</label>
-              <div class="upload-zone" onclick="this.querySelector('input').click()">
-                <input type="file" name="demo_videos" multiple accept="video/*" style="display:none;" onchange="showFileNames(this)">
-                <div class="upload-icon">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#bfbfbf" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                </div>
-                <div class="upload-text">\u70b9\u51fb\u6216\u62d6\u62fd\u4e0a\u4f20</div>
-                <div class="upload-hint">MP4\uff0c\u4eba\u5de5\u64cd\u4f5c\u6f14\u793a</div>
+                <div class="upload-hint">MP4\uff0c\u652f\u6301\u591a\u4e2a</div>
                 <div class="upload-files"></div>
               </div>
             </div>
@@ -2358,42 +2355,8 @@ def scenes_page():
         </form>
       </div>
     </div>
-    <style>
-      .upload-zone {{ border: 1px dashed #d9d9d9; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; background: #fafafa; }}
-      .upload-zone:hover {{ border-color: #1F80A0; background: #f0f9fb; }}
-      .upload-icon {{ margin-bottom: 8px; }}
-      .upload-text {{ font-size: 14px; color: rgba(0,0,0,0.65); }}
-      .upload-hint {{ font-size: 12px; color: rgba(0,0,0,0.35); margin-top: 4px; }}
-      .upload-files {{ margin-top: 8px; text-align: left; }}
-      .upload-file-item {{ display: flex; align-items: center; gap: 6px; padding: 4px 8px; background: #fff; border: 1px solid #f0f0f0; border-radius: 6px; margin-top: 4px; font-size: 12px; color: rgba(0,0,0,0.65); }}
-      .upload-file-item .file-icon {{ color: #1F80A0; }}
-      .upload-file-item .file-size {{ color: rgba(0,0,0,0.35); margin-left: auto; }}
-    </style>
-    <script>
-    function showFileNames(input) {{
-      var container = input.closest('.upload-zone').querySelector('.upload-files');
-      container.innerHTML = '';
-      Array.from(input.files).forEach(function(f) {{
-        var size = f.size < 1048576 ? (f.size/1024).toFixed(0)+'KB' : (f.size/1048576).toFixed(1)+'MB';
-        var isImg = f.type.startsWith('image/');
-        var icon = isImg ? '[IMG]' : '[VID]';
-        container.innerHTML += '<div class="upload-file-item"><span class="file-icon">'+icon+'</span><span>'+f.name+'</span><span class="file-size">'+size+'</span></div>';
-      }});
-    }}
-    // Drag & drop support
-    document.querySelectorAll('.upload-zone').forEach(function(zone) {{
-      zone.addEventListener('dragover', function(e) {{ e.preventDefault(); this.style.borderColor='#1F80A0'; this.style.background='#e6f4f8'; }});
-      zone.addEventListener('dragleave', function() {{ this.style.borderColor=''; this.style.background=''; }});
-      zone.addEventListener('drop', function(e) {{
-        e.preventDefault(); this.style.borderColor=''; this.style.background='';
-        var input = this.querySelector('input[type="file"]');
-        input.files = e.dataTransfer.files;
-        showFileNames(input);
-      }});
-    }});
-    </script>
     '''
-    return render_page("\u573a\u666f\u7ba1\u7406", NOTICE_MVP + content, active="scenes")
+    return render_page("\u573a\u666f\u7ba1\u7406", content, active="scenes")
 
 
 @app.route("/scenes/create", methods=["POST"])
@@ -2405,12 +2368,9 @@ def scenes_create():
     SCENES.append({
         "id": f"s{len(SCENES)+1}", "name": name,
         "description": request.form.get("description", ""),
+        "props": request.form.get("props", ""),
         "creator": "Joanna Qiao", "created_at": datetime.now().strftime("%Y-%m-%d"),
-        "environment": {
-            "type": request.form.get("env_type", ""),
-            "workspace": {"length": int(request.form.get("ws_length", 120)), "width": int(request.form.get("ws_width", 80)), "height": int(request.form.get("ws_height", 75))},
-            "conditions": {"lighting": request.form.get("lighting", ""), "surface": request.form.get("surface", "")},
-        },
+        "environment": {},
         "objects": [],
         "references": {"images": [], "capture_videos": [], "demo_videos": []},
     })
@@ -2424,121 +2384,83 @@ def scene_detail(sid):
     if not sc:
         flash("\u573a\u666f\u4e0d\u5b58\u5728", "error")
         return redirect(url_for("scenes_page"))
-    env = sc.get("environment", {})
-    ws = env.get("workspace", {})
-    cond = env.get("conditions", {})
-    objs = sc.get("objects", [])
     refs = sc.get("references", {})
 
-    # Objects table
-    obj_rows = ""
-    for o in objs:
-        sz = o.get("properties", {}).get("size", {})
-        pose = o.get("initial_pose", {})
-        pose_type = "\u968f\u673a" if pose.get("random") else "\u56fa\u5b9a"
-        weight = o.get("properties", {}).get("weight", 0)
-        material = o.get("properties", {}).get("material", "")
-        obj_rows += (
-            "<tr>"
-            f"<td>{o['name']}</td>"
-            f"<td><span class='ant-tag'>{o.get('category','')}</span></td>"
-            f"<td>{sz.get('length',0)}\u00d7{sz.get('width',0)}\u00d7{sz.get('height',0)} cm</td>"
-            f"<td>{weight} g</td>"
-            f"<td>{material}</td>"
-            f"<td>{pose.get('region','')}</td>"
-            f"<td>{pose_type}</td>"
-            f"<td>{o.get('count',1)}</td>"
-            "</tr>"
-        )
+    # Props fallback
+    props_raw = sc.get("props", "").strip()
+    if not props_raw:
+        props_raw = "\u3001".join(o.get("name", "") for o in sc.get("objects", []) if o.get("name"))
+    props_html = ""
+    if props_raw:
+        for prop in [x.strip() for x in props_raw.replace("\uff0c", ",").replace("\u3001", ",").split(",") if x.strip()]:
+            props_html += f'<span class="ant-tag">{prop}</span>'
+    if not props_html:
+        props_html = '<span style="color:rgba(0,0,0,0.25);">\u2014</span>'
 
-    # Reference sections — grouped by type
-    def _ref_group(title, color, tag_text, items, is_video=False):
-        if not items:
-            return f'<div style="text-align:center;padding:16px;color:rgba(0,0,0,0.25);font-size:13px;">暂无{title}</div>'
-        cards = ""
-        for it in items:
-            desc = it.get("description", "")
-            dur = f' · {it.get("duration",0)}s' if is_video and it.get("duration") else ""
-            url = it.get("url", "")
-            fname = url.split("/")[-1] if url else "file"
-            icon_svg = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>' if not is_video else '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>'
-            cards += f'<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fafafa;border:1px solid #f0f0f0;border-radius:8px;"><span style="color:{color};flex-shrink:0;">{icon_svg}</span><div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{desc or fname}</div><div style="font-size:12px;color:rgba(0,0,0,0.35);">{fname}{dur}</div></div></div>'
-        return cards
+    # Images / videos grids using shared media-card pattern
+    imgs_list = refs.get("images", [])
+    videos_list = refs.get("capture_videos", []) + refs.get("demo_videos", [])
+    _empty = '<span style="color:rgba(0,0,0,0.25);">\u2014</span>'
+    if imgs_list:
+        img_items = ""
+        for i, im in enumerate(imgs_list):
+            desc = im.get("description", f"\u56fe\u7247 {i+1}")
+            url = im.get("url", "")
+            img_items += (
+                f'<div class="media-card" onclick="window.openMediaViewer(\'image\', {i!r}, {desc!r}, {url!r})">'
+                f'<div class="media-thumb"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#8dcde0" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>'
+                f'<div class="media-desc">{desc}</div>'
+                f'</div>'
+            )
+        img_html = f'<div class="media-grid">{img_items}</div>'
+    else:
+        img_html = _empty
+    if videos_list:
+        vid_items = ""
+        for i, v in enumerate(videos_list):
+            desc = v.get("description", f"\u89c6\u9891 {i+1}")
+            url = v.get("url", "")
+            dur = v.get("duration", 0)
+            dur_str = f" &middot; {dur}s" if dur else ""
+            vid_items += (
+                f'<div class="media-card" onclick="window.openMediaViewer(\'video\', {i!r}, {desc!r}, {url!r})">'
+                f'<div class="media-thumb media-thumb-video"><svg width="28" height="28" viewBox="0 0 24 24" fill="#1F80A0"><polygon points="6 4 20 12 6 20"/></svg></div>'
+                f'<div class="media-desc">{desc}{dur_str}</div>'
+                f'</div>'
+            )
+        vid_html = f'<div class="media-grid">{vid_items}</div>'
+    else:
+        vid_html = _empty
 
-    images_html = _ref_group("场景图片", "#1890ff", "图片", refs.get("images", []), False)
-    capture_html = _ref_group("采集视频", "#52c41a", "采集", refs.get("capture_videos", []), True)
-    demo_html = _ref_group("演示视频", "#722ed1", "演示", refs.get("demo_videos", []), True)
-
-    img_count = len(refs.get("images", []))
-    cap_count = len(refs.get("capture_videos", []))
-    demo_count = len(refs.get("demo_videos", []))
-
-    empty_obj_row = "<tr><td colspan='8' style='text-align:center;color:rgba(0,0,0,0.25);'>\u6682\u65e0\u7269\u4f53</td></tr>"
     scene_title = f"\u573a\u666f - {sc['name']}"
+    desc_text = sc.get("description", "").strip() or "\u2014"
 
     content = f'''
     <div style="margin-bottom:16px;"><a href="/scenes" class="ant-btn">&larr; \u8fd4\u56de\u5217\u8868</a></div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
-      <div class="ant-card ant-card-bordered">
-        <div class="ant-card-head" style="padding:12px 20px;"><h3>\u57fa\u672c\u4fe1\u606f</h3></div>
-        <div class="ant-card-body">
-          <div style="display:grid;grid-template-columns:80px 1fr;gap:6px 16px;font-size:14px;">
-            <span style="color:rgba(0,0,0,0.45);">\u6807\u8bc6</span><span>{sc["id"]}</span>
-            <span style="color:rgba(0,0,0,0.45);">\u540d\u79f0</span><span style="font-weight:500;">{sc["name"]}</span>
-            <span style="color:rgba(0,0,0,0.45);">\u63cf\u8ff0</span><span>{sc["description"]}</span>
-            <span style="color:rgba(0,0,0,0.45);">\u521b\u5efa</span><span>{sc["creator"]} \u00b7 {sc["created_at"]}</span>
-          </div>
-        </div>
-      </div>
-      <div class="ant-card ant-card-bordered">
-        <div class="ant-card-head" style="padding:12px 20px;"><h3>\u73af\u5883\u53c2\u6570</h3></div>
-        <div class="ant-card-body">
-          <div style="display:grid;grid-template-columns:80px 1fr;gap:6px 16px;font-size:14px;">
-            <span style="color:rgba(0,0,0,0.45);">\u7c7b\u578b</span><span><span class="ant-tag ant-tag-cyan">{env.get("type","")}</span></span>
-            <span style="color:rgba(0,0,0,0.45);">\u5de5\u4f5c\u533a</span><span>{ws.get("length",0)} \u00d7 {ws.get("width",0)} \u00d7 {ws.get("height",0)} cm</span>
-            <span style="color:rgba(0,0,0,0.45);">\u5149\u7167</span><span>{cond.get("lighting","--")}</span>
-            <span style="color:rgba(0,0,0,0.45);">\u53f0\u9762</span><span>{cond.get("surface","--")}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <div class="ant-card ant-card-bordered" style="margin-bottom:20px;">
-      <div class="ant-card-head" style="padding:12px 20px;"><h3>\u7269\u4f53\u6e05\u5355 ({len(objs)} \u79cd)</h3></div>
-      <table class="ant-table">
-        <thead><tr><th>\u540d\u79f0</th><th>\u5206\u7c7b</th><th>\u5c3a\u5bf8</th><th>\u91cd\u91cf</th><th>\u6750\u8d28</th><th>\u521d\u59cb\u4f4d\u7f6e</th><th>\u653e\u7f6e</th><th>\u6570\u91cf</th></tr></thead>
-        <tbody>{obj_rows if obj_rows else empty_obj_row}</tbody>
-      </table>
-    </div>
-
-    <div class="ant-card ant-card-bordered">
-      <div class="ant-card-head" style="padding:12px 20px;"><h3>\u53c2\u8003\u8d44\u6599</h3></div>
+      <div class="ant-card-head" style="padding:12px 20px;"><h3>\u573a\u666f\u4fe1\u606f</h3></div>
       <div class="ant-card-body">
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;">
+        <div style="display:grid;grid-template-columns:110px 1fr;gap:12px 16px;font-size:14px;align-items:start;margin-bottom:16px;">
+          <span style="color:rgba(0,0,0,0.45);">\u573a\u666f\u540d\u79f0</span><span style="font-weight:500;font-size:15px;">{sc["name"]}</span>
+          <span style="color:rgba(0,0,0,0.45);">\u573a\u666f\u63cf\u8ff0</span><span style="line-height:1.8;">{desc_text}</span>
+          <span style="color:rgba(0,0,0,0.45);">\u4efb\u52a1\u9053\u5177</span><span style="display:flex;flex-wrap:wrap;gap:4px;">{props_html}</span>
+          <span style="color:rgba(0,0,0,0.45);">\u521b\u5efa</span><span>{sc.get("creator","")} \u00b7 {sc.get("created_at","")}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
           <div>
-            <div style="font-size:13px;font-weight:500;color:rgba(0,0,0,0.85);margin-bottom:10px;display:flex;align-items:center;gap:6px;">
-              <span class="ant-tag ant-tag-blue">\u56fe\u7247</span> \u573a\u666f\u56fe\u7247 <span style="color:rgba(0,0,0,0.35);">({img_count})</span>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:8px;">{images_html}</div>
+            <div style="font-size:13px;color:rgba(0,0,0,0.45);margin-bottom:8px;">\u573a\u666f\u56fe\u7247</div>
+            {img_html}
           </div>
           <div>
-            <div style="font-size:13px;font-weight:500;color:rgba(0,0,0,0.85);margin-bottom:10px;display:flex;align-items:center;gap:6px;">
-              <span class="ant-tag ant-tag-green">\u91c7\u96c6</span> \u91c7\u96c6\u89c6\u9891 <span style="color:rgba(0,0,0,0.35);">({cap_count})</span>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:8px;">{capture_html}</div>
-          </div>
-          <div>
-            <div style="font-size:13px;font-weight:500;color:rgba(0,0,0,0.85);margin-bottom:10px;display:flex;align-items:center;gap:6px;">
-              <span class="ant-tag ant-tag-purple">\u6f14\u793a</span> \u914d\u91c7\u6f14\u793a\u89c6\u9891 <span style="color:rgba(0,0,0,0.35);">({demo_count})</span>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:8px;">{demo_html}</div>
+            <div style="font-size:13px;color:rgba(0,0,0,0.45);margin-bottom:8px;">\u573a\u666f\u89c6\u9891</div>
+            {vid_html}
           </div>
         </div>
       </div>
     </div>
     '''
-    return render_page(scene_title, NOTICE_MVP + content, active="scenes")
+    return render_page(scene_title, content, active="scenes")
 
 
 # ── Benchmark Management ──
@@ -2546,8 +2468,6 @@ def scene_detail(sid):
 def benchmarks_page():
     rows = ""
     for b in BENCHMARKS:
-        sc = get_scene(b.get("scene_id", ""))
-        scene_name = sc["name"] if sc else "--"
         cr = get_criterion(b.get("criteria_id", ""))
         cr_name = cr["name"] if cr else "--"
         cr_type = CRITERIA_TYPES.get(cr["type"], {}) if cr else {}
@@ -2567,7 +2487,6 @@ def benchmarks_page():
         rows += (
             "<tr>"
             f'<td style="font-weight:500;">{b["name"]}</td>'
-            f'<td><span class="ant-tag ant-tag-cyan">{scene_name}</span></td>'
             f"<td>{prompt_tags}</td>"
             f'<td><span class="ant-tag ant-tag-{cr_type.get("color","")}">{cr_name}</span></td>'
             f"<td>{b['creator']}</td>"
@@ -2585,17 +2504,15 @@ def benchmarks_page():
         f'<label class="er-opt"><input type="checkbox" value="{p["id"]}" data-name="{p["high_level"]}" onchange="mselSync(\'ms-bm-prompts\')"> <span>{p["high_level"]} &middot; {len(p.get("low_levels", []))} \u6b65</span></label>'
         for p in PROMPTS
     )
+    bm_create_criteria_single_opts = "".join(
+        f'<option value="{c["id"]}"{" selected" if c["id"] == "c1" else ""}>{c["name"]} ({CRITERIA_TYPES.get(c["type"],{}).get("label","")})</option>'
+        for c in CRITERIA
+    )
 
     content = f'''
-    <div class="stat-grid">
-      <div class="stat-card"><div class="stat-label">Benchmark \u603b\u6570</div><div class="stat-value">{len(BENCHMARKS)}</div></div>
-      <div class="stat-card"><div class="stat-label">\u5173\u8054\u573a\u666f</div><div class="stat-value">{len(set(b.get("scene_id","") for b in BENCHMARKS))}</div></div>
-      <div class="stat-card"><div class="stat-label">\u5173\u8054\u63d0\u793a\u8bcd</div><div class="stat-value">{sum(len(b.get("prompt_ids",[])) for b in BENCHMARKS)}</div></div>
-    </div>
-
     <div class="filter-bar">
       <input type="text" placeholder="\u641c\u7d22 Benchmark" style="min-width:180px;">
-      <select style="min-width:130px;"><option value="">\u5168\u90e8\u573a\u666f</option>{scene_opts}</select>
+      <input type="text" placeholder="\u641c\u7d22\u63d0\u793a\u8bcd\uff08\u6a21\u7cca\u5339\u914d\uff09" style="min-width:200px;">
       <button class="ant-btn" onclick="clearFilters()">\u6e05\u7a7a</button>
       <button class="ant-btn ant-btn-primary" onclick="doSearch()">\u641c\u7d22</button>
       <div style="flex:1;"></div>
@@ -2605,7 +2522,7 @@ def benchmarks_page():
     <div class="ant-card ant-card-bordered">
       <table class="ant-table">
         <thead><tr>
-          <th>\u540d\u79f0</th><th>\u573a\u666f</th><th>\u63d0\u793a\u8bcd</th><th>\u8bc4\u4ef7\u6807\u51c6</th><th>\u521b\u5efa\u4eba</th><th>\u521b\u5efa\u65f6\u95f4</th><th>\u64cd\u4f5c</th>
+          <th>\u540d\u79f0</th><th>\u63d0\u793a\u8bcd</th><th>\u8bc4\u4ef7\u6807\u51c6</th><th>\u521b\u5efa\u4eba</th><th>\u521b\u5efa\u65f6\u95f4</th><th>\u64cd\u4f5c</th>
         </tr></thead>
         <tbody>{rows}</tbody>
       </table>
@@ -2617,22 +2534,51 @@ def benchmarks_page():
         <div class="ant-drawer-header"><h3>\u65b0\u589e Benchmark</h3><button class="ant-drawer-close" onclick="closeModal('create-bm-drawer')">&times;</button></div>
         <form method="POST" action="/benchmarks/create">
         <div class="ant-drawer-body">
+          <!-- Section 1: Basic Info -->
           <h4 style="font-size:14px;font-weight:500;margin-bottom:12px;color:rgba(0,0,0,0.85);">\u57fa\u672c\u4fe1\u606f</h4>
-          <div class="form-row">
-            <div class="form-group"><label>\u540d\u79f0</label><input type="text" name="name" required></div>
-            <div class="form-group"></div>
-            <div class="form-group"></div>
-          </div>
+          <div class="form-group"><label>\u540d\u79f0</label><input type="text" name="name" required></div>
           <div class="form-group"><label>\u63cf\u8ff0</label><textarea name="description" rows="2"></textarea></div>
 
           <hr style="border:none;border-top:1px solid #f0f0f0;margin:20px 0;">
-          <h4 style="font-size:14px;font-weight:500;margin-bottom:12px;color:rgba(0,0,0,0.85);">\u5173\u8054\u914d\u7f6e</h4>
-          <div class="form-row">
-            <div class="form-group"><label>\u573a\u666f</label><select name="scene_id">{scene_opts}</select></div>
-            <div class="form-group"><label>\u8bc4\u4ef7\u6807\u51c6</label><select name="criteria_id">{criteria_opts}</select></div>
-            <div class="form-group"></div>
+
+          <!-- Section 2: Scene Config -->
+          <h4 style="font-size:14px;font-weight:500;margin-bottom:12px;color:rgba(0,0,0,0.85);">\u573a\u666f\u914d\u7f6e</h4>
+          <div class="form-group" style="margin-bottom:16px;">
+            <label>\u573a\u666f\u63cf\u8ff0</label>
+            <textarea name="scene_description" rows="3" placeholder="\u63cf\u8ff0\u573a\u666f\u73af\u5883\u3001\u5149\u7167\u6761\u4ef6\u3001\u684c\u9762\u7269\u4f53\u5e03\u7f6e\u7b49\u5173\u952e\u4fe1\u606f"></textarea>
           </div>
-          <div class="form-group">
+          <div class="form-group" style="margin-bottom:16px;">
+            <label>\u4efb\u52a1\u9053\u5177</label>
+            <input type="text" name="props" placeholder="\u7528\u9017\u53f7\u5206\u9694\uff0c\u5982\uff1a\u7ea2\u8272\u7cd6\u679c\u3001\u84dd\u8272\u6876\u3001\u6728\u52fa">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+            <div>
+              <label style="display:block;font-size:14px;color:rgba(0,0,0,0.85);margin-bottom:8px;">\u573a\u666f\u56fe\u7247</label>
+              <div class="upload-zone" onclick="this.querySelector('input').click()">
+                <input type="file" name="scene_images" multiple accept="image/*" style="display:none;" onchange="window.showFileNames(this)">
+                <div class="upload-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#bfbfbf" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+                <div class="upload-text">\u70b9\u51fb\u6216\u62d6\u62fd\u4e0a\u4f20</div>
+                <div class="upload-hint">JPG / PNG\uff0c\u652f\u6301\u591a\u5f20</div>
+                <div class="upload-files"></div>
+              </div>
+            </div>
+            <div>
+              <label style="display:block;font-size:14px;color:rgba(0,0,0,0.85);margin-bottom:8px;">\u573a\u666f\u89c6\u9891</label>
+              <div class="upload-zone" onclick="this.querySelector('input').click()">
+                <input type="file" name="scene_videos" multiple accept="video/*" style="display:none;" onchange="window.showFileNames(this)">
+                <div class="upload-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#bfbfbf" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+                <div class="upload-text">\u70b9\u51fb\u6216\u62d6\u62fd\u4e0a\u4f20</div>
+                <div class="upload-hint">MP4\uff0c\u73b0\u573a\u73af\u5883\u5b9e\u62cd</div>
+                <div class="upload-files"></div>
+              </div>
+            </div>
+          </div>
+
+          <hr style="border:none;border-top:1px solid #f0f0f0;margin:20px 0;">
+
+          <!-- Section 3: Related Config -->
+          <h4 style="font-size:14px;font-weight:500;margin-bottom:12px;color:rgba(0,0,0,0.85);">\u5173\u8054\u914d\u7f6e</h4>
+          <div class="form-group" style="margin-bottom:16px;">
             <label>\u63d0\u793a\u8bcd</label>
             <div style="position:relative;">
               <div class="er-dd-trigger" id="ms-bm-prompts-btn" onclick="mselToggle('ms-bm-prompts', event)">
@@ -2651,6 +2597,10 @@ def benchmarks_page():
               <input type="hidden" name="prompt_ids" id="ms-bm-prompts-hidden" value="">
             </div>
           </div>
+          <div class="form-group">
+            <label>\u8bc4\u4ef7\u6807\u51c6</label>
+            <select name="criteria_id" class="has-value">{bm_create_criteria_single_opts}</select>
+          </div>
         </div>
         <div class="ant-drawer-footer">
           <button type="button" class="ant-btn" onclick="closeModal('create-bm-drawer')">\u53d6\u6d88</button>
@@ -2660,7 +2610,7 @@ def benchmarks_page():
       </div>
     </div>
     '''
-    return render_page("Benchmark \u7ba1\u7406", NOTICE_MVP + content, active="benchmarks")
+    return render_page("Benchmark \u7ba1\u7406", content, active="benchmarks")
 
 
 @app.route("/benchmarks/create", methods=["POST"])
@@ -2673,9 +2623,10 @@ def benchmarks_create():
         "id": f"b{len(BENCHMARKS)+1}",
         "name": name,
         "description": request.form.get("description", ""),
-        "scene_id": request.form.get("scene_id", ""),
-        "prompt_ids": [x.strip() for x in request.form.get("prompt_ids", "").split(",") if x.strip()] or request.form.getlist("prompt_ids"),
-        "criteria_id": request.form.get("criteria_id", ""),
+        "scene_description": request.form.get("scene_description", ""),
+        "props": request.form.get("props", ""),
+        "prompt_ids": [x.strip() for x in request.form.get("prompt_ids", "").split(",") if x.strip()],
+        "criteria_id": request.form.get("criteria_id", "c1"),
         "creator": "Joanna Qiao",
         "created_at": datetime.now().strftime("%Y-%m-%d"),
     })
@@ -2754,41 +2705,127 @@ def benchmark_detail(bid):
 
     bm_title = f"Benchmark - {b['name']}"
 
+    # Scene description fallback: use explicit field if present, else derive from linked scene
+    scene_desc = b.get("scene_description", "").strip()
+    if not scene_desc and sc:
+        env = sc.get("environment", {})
+        ws = env.get("workspace", {})
+        scene_desc = f'{sc.get("description","")} \u00b7 \u5de5\u4f5c\u533a {ws.get("length",0)}x{ws.get("width",0)}x{ws.get("height",0)}cm \u00b7 {env.get("conditions",{}).get("lighting","")}'
+    scene_desc_html = scene_desc if scene_desc else '<span style="color:rgba(0,0,0,0.25);">\u2014</span>'
+
+    props_raw = b.get("props", "").strip()
+    if not props_raw and sc:
+        objs = sc.get("objects", [])
+        props_raw = "\u3001".join(o.get("name", "") for o in objs if o.get("name"))
+    props_html = ""
+    if props_raw:
+        for prop in [x.strip() for x in props_raw.replace("\uff0c", ",").replace("\u3001", ",").split(",") if x.strip()]:
+            props_html += f'<span class="ant-tag">{prop}</span>'
+    if not props_html:
+        props_html = '<span style="color:rgba(0,0,0,0.25);">\u2014</span>'
+
+    # Images/videos from scene references
+    _refs_full = sc.get("references", {}) if sc else {}
+    imgs_list = _refs_full.get("images", [])
+    videos_list = _refs_full.get("capture_videos", []) + _refs_full.get("demo_videos", [])
+    _empty = '<span style="color:rgba(0,0,0,0.25);">\u2014</span>'
+    # Build clickable image grid
+    if imgs_list:
+        img_items = ""
+        for i, im in enumerate(imgs_list):
+            desc = im.get("description", f"\u56fe\u7247 {i+1}")
+            url = im.get("url", "")
+            img_items += (
+                f'<div class="media-card" onclick="openMediaViewer(\'image\', {i!r}, {desc!r}, {url!r})">'
+                f'<div class="media-thumb"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#8dcde0" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>'
+                f'<div class="media-desc">{desc}</div>'
+                f'</div>'
+            )
+        img_html = f'<div class="media-grid">{img_items}</div>'
+    else:
+        img_html = _empty
+    # Build clickable video list
+    if videos_list:
+        vid_items = ""
+        for i, v in enumerate(videos_list):
+            desc = v.get("description", f"\u89c6\u9891 {i+1}")
+            url = v.get("url", "")
+            dur = v.get("duration", 0)
+            dur_str = f" &middot; {dur}s" if dur else ""
+            vid_items += (
+                f'<div class="media-card" onclick="openMediaViewer(\'video\', {i!r}, {desc!r}, {url!r})">'
+                f'<div class="media-thumb media-thumb-video"><svg width="28" height="28" viewBox="0 0 24 24" fill="#1F80A0"><polygon points="6 4 20 12 6 20"/></svg></div>'
+                f'<div class="media-desc">{desc}{dur_str}</div>'
+                f'</div>'
+            )
+        vid_html = f'<div class="media-grid">{vid_items}</div>'
+    else:
+        vid_html = _empty
+
+    # Criteria info
+    if cr:
+        criteria_html = f'<span style="font-weight:500;">{cr["name"]}</span> <span class="ant-tag ant-tag-{cr_type.get("color","")}">{cr_type.get("label","")}</span>'
+    else:
+        criteria_html = '<span style="color:rgba(0,0,0,0.25);">\u2014</span>'
+    description_html = b["description"] if b.get("description") else "\u2014"
+
     content = f'''
     <div style="margin-bottom:16px;"><a href="/benchmarks" class="ant-btn">&larr; \u8fd4\u56de\u5217\u8868</a></div>
 
+    <!-- Section 1: Basic Info -->
     <div class="ant-card ant-card-bordered" style="margin-bottom:20px;">
       <div class="ant-card-head" style="padding:12px 20px;"><h3>\u57fa\u672c\u4fe1\u606f</h3></div>
       <div class="ant-card-body">
-        <div style="display:grid;grid-template-columns:80px 1fr;gap:6px 16px;font-size:14px;">
-          <span style="color:rgba(0,0,0,0.45);">\u6807\u8bc6</span><span>{b["id"]}</span>
-          <span style="color:rgba(0,0,0,0.45);">\u540d\u79f0</span><span style="font-weight:500;font-size:16px;">{b["name"]}</span>
-          <span style="color:rgba(0,0,0,0.45);">\u63cf\u8ff0</span><span>{b["description"]}</span>
+        <div style="display:grid;grid-template-columns:110px 1fr;gap:10px 16px;font-size:14px;">
+          <span style="color:rgba(0,0,0,0.45);">\u540d\u79f0</span><span style="font-weight:500;font-size:15px;">{b["name"]}</span>
+          <span style="color:rgba(0,0,0,0.45);">\u63cf\u8ff0</span><span>{description_html}</span>
           <span style="color:rgba(0,0,0,0.45);">\u521b\u5efa</span><span>{b["creator"]} \u00b7 {b["created_at"]}</span>
         </div>
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
-      <div class="ant-card ant-card-bordered">
-        <div class="ant-card-head" style="padding:12px 20px;"><h3>\u573a\u666f</h3></div>
-        <div class="ant-card-body">{scene_card}</div>
-      </div>
-      <div class="ant-card ant-card-bordered">
-        <div class="ant-card-head" style="padding:12px 20px;"><h3>\u8bc4\u4ef7\u6807\u51c6</h3></div>
-        <div class="ant-card-body">{criteria_card}</div>
+    <!-- Section 2: Scene Config -->
+    <div class="ant-card ant-card-bordered" style="margin-bottom:20px;">
+      <div class="ant-card-head" style="padding:12px 20px;"><h3>\u573a\u666f\u914d\u7f6e</h3></div>
+      <div class="ant-card-body">
+        <div style="display:grid;grid-template-columns:110px 1fr;gap:12px 16px;font-size:14px;align-items:start;margin-bottom:16px;">
+          <span style="color:rgba(0,0,0,0.45);">\u573a\u666f\u63cf\u8ff0</span>
+          <span style="line-height:1.8;">{scene_desc_html}</span>
+          <span style="color:rgba(0,0,0,0.45);">\u4efb\u52a1\u9053\u5177</span>
+          <span style="display:flex;flex-wrap:wrap;gap:4px;">{props_html}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <div>
+            <div style="font-size:13px;color:rgba(0,0,0,0.45);margin-bottom:8px;">\u573a\u666f\u56fe\u7247</div>
+            {img_html}
+          </div>
+          <div>
+            <div style="font-size:13px;color:rgba(0,0,0,0.45);margin-bottom:8px;">\u573a\u666f\u89c6\u9891</div>
+            {vid_html}
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="ant-card ant-card-bordered">
-      <div class="ant-card-head" style="padding:12px 20px;"><h3>\u63d0\u793a\u8bcd ({len(b.get("prompt_ids",[]))} \u7ec4)</h3></div>
-      <table class="ant-table">
-        <thead><tr><th>\u4efb\u52a1\u63d0\u793a\u8bcd</th><th>Task Prompt</th><th>\u5b50\u6b65\u9aa4</th><th>\u6807\u7b7e</th><th>\u72b6\u6001</th></tr></thead>
-        <tbody>{prompt_rows}</tbody>
-      </table>
+    <!-- Section 3: Related Config -->
+    <div class="ant-card ant-card-bordered" style="margin-bottom:20px;">
+      <div class="ant-card-head" style="padding:12px 20px;"><h3>\u5173\u8054\u914d\u7f6e</h3></div>
+      <div class="ant-card-body">
+        <div style="display:grid;grid-template-columns:110px 1fr;gap:14px 16px;font-size:14px;align-items:start;">
+          <span style="color:rgba(0,0,0,0.45);">\u8bc4\u4ef7\u6807\u51c6</span>
+          <span>{criteria_html}</span>
+          <span style="color:rgba(0,0,0,0.45);">\u63d0\u793a\u8bcd ({len(b.get("prompt_ids",[]))} \u7ec4)</span>
+          <div>
+            <table class="ant-table" style="margin-top:-4px;">
+              <thead><tr><th>\u4efb\u52a1\u63d0\u793a\u8bcd</th><th>Task Prompt</th><th>\u5b50\u6b65\u9aa4</th><th>\u6807\u7b7e</th><th>\u72b6\u6001</th></tr></thead>
+              <tbody>{prompt_rows}</tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
     '''
-    return render_page(bm_title, NOTICE_MVP + content, active="benchmarks")
+    return render_page(bm_title, content, active="benchmarks")
 
 
 # ── Evaluation Task Management ──
@@ -2893,26 +2930,53 @@ def tasks_page():
         for pid in b.get("prompt_ids", []):
             p = get_prompt(pid)
             if p:
-                prompts_info.append({"name": p["high_level"], "steps": len(p.get("low_levels", []))})
+                prompts_info.append({
+                    "name": p["high_level"],
+                    "steps": len(p.get("low_levels", [])),
+                    "low_levels": [{"zh": ll.get("zh", ""), "en": ll.get("en", "")} for ll in p.get("low_levels", [])],
+                })
         cr = get_criterion(b.get("criteria_id", ""))
         cr_info = ""
         if cr:
             ct = CRITERIA_TYPES.get(cr["type"], {})
             cr_info = f'{cr["name"]} ({ct.get("label", "")})'
+        # Scene description fallback from linked scene
+        _scene_desc = b.get("scene_description", "").strip()
+        if not _scene_desc and sc:
+            _env = sc.get("environment", {})
+            _ws = _env.get("workspace", {})
+            _scene_desc = f'{sc.get("description","")} \u00b7 \u5de5\u4f5c\u533a {_ws.get("length",0)}x{_ws.get("width",0)}x{_ws.get("height",0)}cm \u00b7 {_env.get("conditions",{}).get("lighting","")}'
+        # Props fallback
+        _props = b.get("props", "").strip()
+        if not _props and sc:
+            _props = "\u3001".join(o.get("name", "") for o in sc.get("objects", []) if o.get("name"))
+        _refs = sc.get("references", {}) if sc else {}
+        _imgs = [{"url": x.get("url", ""), "description": x.get("description", "")} for x in _refs.get("images", [])]
+        _caps = [{"url": x.get("url", ""), "description": x.get("description", ""), "duration": x.get("duration", 0)} for x in _refs.get("capture_videos", [])]
+        _demos = [{"url": x.get("url", ""), "description": x.get("description", ""), "duration": x.get("duration", 0)} for x in _refs.get("demo_videos", [])]
         bm_preview[b["id"]] = {
+            "id": b["id"],
+            "name": b.get("name", ""),
+            "description": b.get("description", ""),
             "scene": sc["name"] if sc else "--",
             "scene_type": sc.get("environment", {}).get("type", "") if sc else "",
+            "scene_description": _scene_desc,
+            "props": _props,
+            "images": _imgs,
+            "videos": _caps + _demos,
             "criteria": cr_info,
             "prompts": prompts_info,
+            "creator": b.get("creator", ""),
+            "created_at": b.get("created_at", ""),
         }
     bm_preview_json = _json.dumps(bm_preview, ensure_ascii=False)
 
     # Tag tree selector for task labels
     task_tag_tree = build_tree_selector_html("task-tags")
 
-    # Checkpoint options (mselSync pattern)
+    # Checkpoint options (mselSync pattern, max 2 selections enforced in JS)
     ckpt_ms_opts = "".join(
-        f'<label class="er-opt"><input type="checkbox" value="{m["id"]}" data-name="{m["name"]}" onchange="mselSync(\'ms-ckpt\')"> <span>{m["name"]} <span style="color:rgba(0,0,0,0.35);">{m["version"]}</span></span></label>'
+        f'<label class="er-opt"><input type="checkbox" value="{m["id"]}" data-name="{m["name"]}" onchange="ckptLimitChange(this)"> <span>{m["name"]} <span style="color:rgba(0,0,0,0.35);">{m["version"]}</span></span></label>'
         for m in MODELS
     )
     type_filter_opts = "".join(f'<option value="{k}">{v["label"]}</option>' for k, v in CRITERIA_TYPES.items())
@@ -2956,39 +3020,42 @@ def tasks_page():
     <div class="ant-drawer-mask" id="create-task-drawer">
       <div class="ant-drawer-content">
         <div class="ant-drawer-header"><h3>\u65b0\u589e\u8bc4\u6d4b\u4efb\u52a1</h3><button class="ant-drawer-close" onclick="closeModal('create-task-drawer')">&times;</button></div>
-        <form method="POST" action="/tasks/create">
+        <form method="POST" action="/tasks/create" onsubmit="return validateTaskForm()">
         <div class="ant-drawer-body">
           <!-- Section 1: Basic Info -->
           <h4 style="font-size:14px;font-weight:500;margin-bottom:12px;color:rgba(0,0,0,0.85);">\u57fa\u7840\u4fe1\u606f</h4>
           <div class="form-row">
             <div class="form-group"><label>\u4efb\u52a1\u540d\u79f0</label><div class="input-clear-wrap"><input type="text" name="name" required><span class="input-clear" onclick="this.previousElementSibling.value=''">&times;</span></div></div>
+            <div class="form-group"><label>\u5411\u8bc4\u6d4b\u5458\u5c55\u793a\u540d\u79f0</label><div class="input-clear-wrap"><input type="text" name="display_name" placeholder="\u5efa\u8bae\u4e0d\u8981\u5305\u542b\u6a21\u578b\u4fe1\u606f"><span class="input-clear" onclick="this.previousElementSibling.value=''">&times;</span></div></div>
             <div class="form-group"><label>\u6240\u5c5e\u9879\u76ee</label><select name="project"><option value="">\u8bf7\u9009\u62e9</option><option>\u57fa\u7840\u7814\u7a76</option><option>\u5b81\u5fb7\u5e94\u7528</option><option>moz1</option><option>spirit</option><option>demo\u91c7\u96c6</option><option>\u9884\u8bad\u7ec3\u91c7\u96c6</option><option>\u591a\u4efb\u52a1</option></select></div>
-            <div class="form-group"><label>\u91c7\u96c6\u7c7b\u578b</label><input type="text" value="test" disabled style="background:#f5f5f5;color:rgba(0,0,0,0.45);"></div>
           </div>
           <div class="form-row">
-            <div class="form-group"><label>\u8bc4\u6d4b\u672c\u4f53</label><select name="device"><option value="">\u8bf7\u9009\u62e9</option><option>moz</option><option>Franka</option></select></div>
-            <div class="form-group"><label>\u8bc4\u6d4b\u6b21\u6570</label><div class="input-clear-wrap"><input type="number" name="total_sessions" value="30" min="1"><span class="input-clear" onclick="this.previousElementSibling.value=''">&times;</span></div></div>
+            <div class="form-group"><label>\u91c7\u96c6\u7c7b\u578b</label><input type="text" value="test" disabled style="background:#f5f5f5;color:rgba(0,0,0,0.45);"></div>
+            <div class="form-group"><label>\u4f18\u5148\u7ea7</label><select name="priority"><option value="">\u8bf7\u9009\u62e9</option><option value="\u9ad8">\u9ad8</option><option value="\u4e2d" selected>\u4e2d</option><option value="\u4f4e">\u4f4e</option></select></div>
             <div class="form-group"><label>\u9884\u671f\u4ea4\u4ed8\u65e5\u671f</label><div class="input-clear-wrap"><input type="date" name="due_date" style="width:100%;"><span class="input-clear" onclick="this.previousElementSibling.value=''">&times;</span></div></div>
           </div>
-          <div class="form-row">
-            <div class="form-group"><label>\u4f18\u5148\u7ea7</label><select name="priority"><option value="">\u8bf7\u9009\u62e9</option><option value="\u9ad8">\u9ad8</option><option value="\u4e2d" selected>\u4e2d</option><option value="\u4f4e">\u4f4e</option></select></div>
-            <div class="form-group" style="grid-column:2/4;">
-              <label>\u4efb\u52a1\u6807\u7b7e (\u591a\u9009)</label>
-              <div class="ts-wrap" id="ts-task-tags" style="max-width:100%;">
-                <div class="ts-trigger" onclick="tsToggle('ts-task-tags')" style="min-height:36px;"><span class="ts-placeholder">\u9009\u62e9\u6807\u7b7e</span></div>
-                <div class="ts-panel" style="max-height:280px;">{task_tag_tree}</div>
-                <input type="hidden" name="task_tags" id="task-tags-hidden" value="">
-              </div>
+          <div class="form-group">
+            <label>\u4efb\u52a1\u6807\u7b7e (\u591a\u9009)</label>
+            <div class="ts-wrap" id="ts-task-tags" style="max-width:100%;">
+              <div class="ts-trigger" onclick="tsToggle('ts-task-tags')" style="min-height:36px;"><span class="ts-placeholder">\u9009\u62e9\u6807\u7b7e</span></div>
+              <div class="ts-panel" style="max-height:280px;">{task_tag_tree}</div>
+              <input type="hidden" name="task_tags" id="task-tags-hidden" value="">
             </div>
           </div>
+          <div class="form-group"><label>\u4efb\u52a1\u63cf\u8ff0</label><textarea name="description" rows="2" placeholder="\u7b80\u8981\u63cf\u8ff0\u8be5\u4efb\u52a1\u7684\u76ee\u7684\u3001\u5173\u6ce8\u70b9\u7b49"></textarea></div>
 
           <hr style="border:none;border-top:1px solid #f0f0f0;margin:20px 0;">
 
-          <!-- Section 2: Models -->
-          <h4 style="font-size:14px;font-weight:500;margin-bottom:12px;color:rgba(0,0,0,0.85);">\u8bc4\u6d4b\u6a21\u578b</h4>
+          <!-- Section 2: Eval Config -->
+          <h4 style="font-size:14px;font-weight:500;margin-bottom:12px;color:rgba(0,0,0,0.85);">\u8bc4\u6d4b\u914d\u7f6e</h4>
           <div class="form-row">
-            <div class="form-group" style="grid-column:1/3;">
-              <label>Checkpoint</label>
+            <div class="form-group"><label>\u8bc4\u6d4b\u672c\u4f53</label><select name="device" id="task-device" onchange="syncDeployMode(this.value)"><option value="">\u8bf7\u9009\u62e9</option><option value="moz">moz</option><option value="Franka">Franka</option></select></div>
+            <div class="form-group"><label>\u90e8\u7f72\u65b9\u5f0f</label><input type="text" id="task-deploy-mode-text" value="--" disabled style="background:#f5f5f5;color:rgba(0,0,0,0.45);"><input type="hidden" name="deploy_mode" id="task-deploy-mode"></div>
+            <div class="form-group"><label>\u8bc4\u6d4b\u6b21\u6570</label><div class="input-clear-wrap"><input type="number" name="total_sessions" value="30" min="1"><span class="input-clear" onclick="this.previousElementSibling.value=''">&times;</span></div></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="grid-column:1/4;">
+              <label>Checkpoint (\u5fc5\u987b\u9009 2 \u4e2a)</label>
               <div style="position:relative;">
                 <div class="er-dd-trigger" id="ms-ckpt-btn" onclick="mselToggle('ms-ckpt', event)">
                   <div id="ms-ckpt-chips" class="er-chips"></div>
@@ -2996,8 +3063,8 @@ def tasks_page():
                 </div>
                 <div class="er-dd-panel" id="ms-ckpt-panel" style="width:100%;">
                   <div style="padding:8px 12px;border-bottom:1px solid #f0f0f0;display:flex;gap:16px;align-items:center;">
-                    <a href="javascript:;" onclick="mselToggleAll('ms-ckpt', true)" style="font-size:12px;color:#1F80A0;">\u5168\u9009</a>
-                    <a href="javascript:;" onclick="mselToggleAll('ms-ckpt', false)" style="font-size:12px;color:rgba(0,0,0,0.45);">\u6e05\u7a7a</a>
+                    <span style="font-size:12px;color:rgba(0,0,0,0.45);">\u5fc5\u987b\u9009 2 \u4e2a</span>
+                    <a href="javascript:;" onclick="mselToggleAll('ms-ckpt', false)" style="font-size:12px;color:rgba(0,0,0,0.45);margin-left:auto;">\u6e05\u7a7a</a>
                   </div>
                   <div style="max-height:240px;overflow-y:auto;padding:6px 0;">
                     {ckpt_ms_opts}
@@ -3006,78 +3073,35 @@ def tasks_page():
                 <input type="hidden" name="model_ids" id="ms-ckpt-hidden" value="">
               </div>
             </div>
-            <div class="form-group"><label>\u90e8\u7f72\u65b9\u5f0f</label><select name="deploy_mode"><option value="">\u8bf7\u9009\u62e9</option><option>\u4e91\u7aef\u90e8\u7f72</option><option>\u672c\u5730\u90e8\u7f72</option></select></div>
           </div>
 
-          <hr style="border:none;border-top:1px solid #f0f0f0;margin:20px 0;">
-
-          <!-- Section 3: Benchmark (inline scene + references) -->
-          <h4 style="font-size:14px;font-weight:500;margin-bottom:12px;color:rgba(0,0,0,0.85);">Benchmark</h4>
-
-          <!-- Scene description -->
-          <div class="form-group" style="margin-bottom:16px;">
-            <label>\u573a\u666f\u63cf\u8ff0</label>
-            <textarea name="scene_description" rows="3" placeholder="\u63cf\u8ff0\u573a\u666f\u7684\u73af\u5883\u3001\u7269\u4f53\u5e03\u7f6e\u3001\u5149\u7167\u6761\u4ef6\u7b49\u5173\u952e\u4fe1\u606f"></textarea>
+          <!-- Benchmark (merged into Eval Config) -->
+          <div class="form-group" style="margin-top:4px;">
+            <label>Benchmark</label>
+            <select name="benchmark_id" id="bm-select" onchange="previewBm(this.value)" class="has-value">{bm_opts}</select>
           </div>
-
-          <!-- Upload zones -->
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px;">
-            <div>
-              <label style="display:block;font-size:14px;color:rgba(0,0,0,0.85);margin-bottom:8px;">\u573a\u666f\u56fe\u7247</label>
-              <div class="upload-zone" onclick="this.querySelector('input').click()">
-                <input type="file" name="scene_images" multiple accept="image/*" style="display:none;" onchange="window.showFileNames(this)">
-                <div class="upload-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#bfbfbf" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
-                <div class="upload-text">\u70b9\u51fb\u6216\u62d6\u62fd\u4e0a\u4f20</div>
-                <div class="upload-hint">JPG / PNG\uff0c\u652f\u6301\u591a\u5f20</div>
-                <div class="upload-files"></div>
-              </div>
+          <!-- Benchmark preview: 3 rows -->
+          <div id="bm-preview" style="margin-top:8px;padding:14px 16px;background:#fafafa;border-radius:8px;border:1px solid #f0f0f0;display:none;position:relative;">
+            <div style="display:grid;grid-template-columns:90px 1fr;gap:8px 12px;font-size:13px;align-items:start;">
+              <span style="color:rgba(0,0,0,0.45);">\u573a\u666f\u63cf\u8ff0</span>
+              <span id="bm-pv-scene" style="line-height:1.7;"></span>
+              <span style="color:rgba(0,0,0,0.45);">\u8bc4\u4ef7\u6807\u51c6</span>
+              <span id="bm-pv-criteria" style="font-weight:500;"></span>
+              <span style="color:rgba(0,0,0,0.45);">\u63d0\u793a\u8bcd\u7ec4</span>
+              <span id="bm-pv-prompts" style="display:flex;flex-wrap:wrap;gap:4px;"></span>
             </div>
-            <div>
-              <label style="display:block;font-size:14px;color:rgba(0,0,0,0.85);margin-bottom:8px;">\u91c7\u96c6\u89c6\u9891</label>
-              <div class="upload-zone" onclick="this.querySelector('input').click()">
-                <input type="file" name="capture_videos" multiple accept="video/*" style="display:none;" onchange="window.showFileNames(this)">
-                <div class="upload-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#bfbfbf" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
-                <div class="upload-text">\u70b9\u51fb\u6216\u62d6\u62fd\u4e0a\u4f20</div>
-                <div class="upload-hint">MP4\uff0c\u73b0\u573a\u73af\u5883\u5b9e\u62cd</div>
-                <div class="upload-files"></div>
-              </div>
-            </div>
-            <div>
-              <label style="display:block;font-size:14px;color:rgba(0,0,0,0.85);margin-bottom:8px;">\u914d\u91c7\u6f14\u793a\u89c6\u9891</label>
-              <div class="upload-zone" onclick="this.querySelector('input').click()">
-                <input type="file" name="demo_videos" multiple accept="video/*" style="display:none;" onchange="window.showFileNames(this)">
-                <div class="upload-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#bfbfbf" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
-                <div class="upload-text">\u70b9\u51fb\u6216\u62d6\u62fd\u4e0a\u4f20</div>
-                <div class="upload-hint">MP4\uff0c\u4eba\u5de5\u64cd\u4f5c\u6f14\u793a</div>
-                <div class="upload-files"></div>
-              </div>
-            </div>
+            <a href="javascript:;" onclick="openBmDetail()" style="position:absolute;top:14px;right:16px;font-size:13px;color:#1F80A0;text-decoration:none;">\u67e5\u770b\u8be6\u60c5 &rarr;</a>
           </div>
-
-          <!-- Reference existing modules: prompts / criteria / tags -->
-          <div class="form-row" style="margin-bottom:16px;">
-            <div class="form-group" style="grid-column:1/3;">
-              <label>\u63d0\u793a\u8bcd</label>
-              <div style="position:relative;">
-                <div class="er-dd-trigger" id="ms-prompts-btn" onclick="mselToggle('ms-prompts', event)">
-                  <div id="ms-prompts-chips" class="er-chips"></div>
-                  <span style="margin-left:auto;color:rgba(0,0,0,0.35);font-size:10px;flex-shrink:0;padding-left:4px;">&#9660;</span>
-                </div>
-                <div class="er-dd-panel" id="ms-prompts-panel" style="width:100%;">
-                  <div style="padding:8px 12px;border-bottom:1px solid #f0f0f0;display:flex;gap:16px;align-items:center;">
-                    <a href="javascript:;" onclick="mselToggleAll('ms-prompts', true)" style="font-size:12px;color:#1F80A0;">\u5168\u9009</a>
-                    <a href="javascript:;" onclick="mselToggleAll('ms-prompts', false)" style="font-size:12px;color:rgba(0,0,0,0.45);">\u6e05\u7a7a</a>
-                  </div>
-                  <div style="max-height:240px;overflow-y:auto;padding:6px 0;">
-                    {bm_prompt_ms_opts}
-                  </div>
-                </div>
-                <input type="hidden" name="bm_prompt_ids" id="ms-prompts-hidden" value="">
-              </div>
+        </div>
+        <!-- Benchmark detail modal (inline drawer) -->
+        <div class="ant-drawer-mask" id="bm-detail-modal">
+          <div class="ant-drawer-content" style="width:720px;max-width:90vw;">
+            <div class="ant-drawer-header">
+              <h3 id="bm-detail-title">Benchmark \u8be6\u60c5</h3>
+              <button class="ant-drawer-close" onclick="closeModal('bm-detail-modal')">&times;</button>
             </div>
-            <div class="form-group">
-              <label>\u8bc4\u5b9a\u6807\u51c6</label>
-              <select name="bm_criteria_id">{bm_criteria_opts}</select>
+            <div class="ant-drawer-body">
+              <div id="bm-detail-body" style="font-size:14px;"></div>
             </div>
           </div>
         </div>
@@ -3091,17 +3115,113 @@ def tasks_page():
 
     <script>
     var bmData = {bm_preview_json};
+    var bmCurrentId = null;
     function previewBm(bid) {{
+      bmCurrentId = bid;
       var pv = document.getElementById('bm-preview');
       var d = bmData[bid];
       if (!d) {{ pv.style.display='none'; return; }}
       pv.style.display='';
-      document.getElementById('bm-pv-scene').textContent = d.scene;
-      document.getElementById('bm-pv-type').textContent = d.scene_type;
+      document.getElementById('bm-pv-scene').textContent = d.scene_description || '\u2014';
       document.getElementById('bm-pv-criteria').textContent = d.criteria || '--';
       var ph = '';
       d.prompts.forEach(function(p) {{ ph += '<span class="ant-tag">'+p.name+' ('+p.steps+'\u6b65)</span>'; }});
       document.getElementById('bm-pv-prompts').innerHTML = ph;
+    }}
+    function openBmDetail() {{
+      if (!bmCurrentId) return;
+      var d = bmData[bmCurrentId];
+      if (!d) return;
+      document.getElementById('bm-detail-title').textContent = 'Benchmark \u8be6\u60c5 - ' + d.name;
+      function esc(s) {{ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }}
+      function escAttr(s) {{ return esc(s).replace(/'/g, '&#39;'); }}
+      // Expandable prompt list
+      var promptsHtml = '';
+      d.prompts.forEach(function(p, pi) {{
+        var llId = 'bm-mo-prompt-' + pi;
+        var llRows = '';
+        (p.low_levels || []).forEach(function(ll, li) {{
+          llRows += '<div style="padding:4px 0 4px 28px;font-size:12px;color:rgba(0,0,0,0.65);border-bottom:1px solid #fafafa;"><span style="color:rgba(0,0,0,0.25);margin-right:6px;">' + (li+1) + '.</span>' + esc(ll.zh) + ' <span style="color:rgba(0,0,0,0.35);">' + esc(ll.en) + '</span></div>';
+        }});
+        promptsHtml += ''
+          + '<div style="border:1px solid #f0f0f0;border-radius:6px;margin-bottom:6px;background:#fff;overflow:hidden;">'
+          + '<div style="padding:8px 12px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;" onclick="var c=document.getElementById(\\''+llId+'\\');var a=this.querySelector(\\'.ll-a\\');var show=c.style.display===\\'none\\';c.style.display=show?\\'\\':\\'none\\';a.style.transform=show?\\'rotate(90deg)\\':\\'\\';">'
+          +   '<span class="ll-a" style="display:inline-block;font-size:10px;color:rgba(0,0,0,0.3);transition:transform 0.2s;">\u25B6</span>'
+          +   '<span style="font-weight:500;">' + esc(p.name) + '</span>'
+          +   '<span style="color:rgba(0,0,0,0.45);">\u00B7 ' + p.steps + ' \u6b65</span>'
+          + '</div>'
+          + '<div id="' + llId + '" style="display:none;padding:4px 12px 8px;border-top:1px solid #f5f5f5;">' + (llRows || '<div style="color:rgba(0,0,0,0.25);padding:4px 0;">\u6682\u65e0</div>') + '</div>'
+          + '</div>';
+      }});
+      if (!promptsHtml) promptsHtml = '<span style="color:rgba(0,0,0,0.25);">\u2014</span>';
+      // Props chips
+      var propsHtml = '';
+      if (d.props) {{
+        d.props.split(/[,\uff0c\u3001]/).forEach(function(p) {{
+          p = p.trim();
+          if (p) propsHtml += '<span class="ant-tag">' + esc(p) + '</span>';
+        }});
+      }}
+      if (!propsHtml) propsHtml = '<span style="color:rgba(0,0,0,0.25);">\u2014</span>';
+      // Image grid
+      var imgsHtml = '';
+      (d.images || []).forEach(function(im, i) {{
+        var desc = im.description || ('\u56fe\u7247 ' + (i+1));
+        imgsHtml += ''
+          + '<div class="media-card" onclick="window.openMediaViewer(\\'image\\', ' + i + ', \\'' + escAttr(desc) + '\\', \\'' + escAttr(im.url || '') + '\\')">'
+          + '<div class="media-thumb"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#8dcde0" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>'
+          + '<div class="media-desc">' + esc(desc) + '</div>'
+          + '</div>';
+      }});
+      if (!imgsHtml) imgsHtml = '<span style="color:rgba(0,0,0,0.25);">\u2014</span>';
+      else imgsHtml = '<div class="media-grid">' + imgsHtml + '</div>';
+      // Video grid
+      var vidsHtml = '';
+      (d.videos || []).forEach(function(v, i) {{
+        var desc = v.description || ('\u89c6\u9891 ' + (i+1));
+        var dur = v.duration ? (' \u00B7 ' + v.duration + 's') : '';
+        vidsHtml += ''
+          + '<div class="media-card" onclick="window.openMediaViewer(\\'video\\', ' + i + ', \\'' + escAttr(desc) + '\\', \\'' + escAttr(v.url || '') + '\\')">'
+          + '<div class="media-thumb media-thumb-video"><svg width="28" height="28" viewBox="0 0 24 24" fill="#1F80A0"><polygon points="6 4 20 12 6 20"/></svg></div>'
+          + '<div class="media-desc">' + esc(desc) + dur + '</div>'
+          + '</div>';
+      }});
+      if (!vidsHtml) vidsHtml = '<span style="color:rgba(0,0,0,0.25);">\u2014</span>';
+      else vidsHtml = '<div class="media-grid">' + vidsHtml + '</div>';
+      var sd = d.scene_description || '<span style="color:rgba(0,0,0,0.25);">\u2014</span>';
+      var cri = d.criteria || '<span style="color:rgba(0,0,0,0.25);">\u2014</span>';
+      var html = ''
+        // Section 1: Basic Info
+        + '<div style="margin-bottom:20px;">'
+        + '<h4 style="margin:0 0 12px;font-size:14px;font-weight:500;color:rgba(0,0,0,0.85);">\u57fa\u672c\u4fe1\u606f</h4>'
+        + '<div style="display:grid;grid-template-columns:110px 1fr;gap:10px 16px;font-size:13px;">'
+        + '<span style="color:rgba(0,0,0,0.45);">\u540d\u79f0</span><span style="font-weight:500;font-size:14px;">' + esc(d.name || '--') + '</span>'
+        + '<span style="color:rgba(0,0,0,0.45);">\u63cf\u8ff0</span><span>' + (d.description ? esc(d.description) : '\u2014') + '</span>'
+        + '<span style="color:rgba(0,0,0,0.45);">\u521b\u5efa</span><span>' + esc(d.creator || '--') + ' \u00b7 ' + esc(d.created_at || '--') + '</span>'
+        + '</div></div>'
+        // Section 2: Scene Config
+        + '<hr style="border:none;border-top:1px solid #f0f0f0;margin:16px 0;">'
+        + '<div style="margin-bottom:20px;">'
+        + '<h4 style="margin:0 0 12px;font-size:14px;font-weight:500;color:rgba(0,0,0,0.85);">\u573a\u666f\u914d\u7f6e</h4>'
+        + '<div style="display:grid;grid-template-columns:110px 1fr;gap:12px 16px;font-size:13px;align-items:start;margin-bottom:16px;">'
+        + '<span style="color:rgba(0,0,0,0.45);">\u573a\u666f\u63cf\u8ff0</span><span style="line-height:1.8;">' + sd + '</span>'
+        + '<span style="color:rgba(0,0,0,0.45);">\u4efb\u52a1\u9053\u5177</span><span style="display:flex;flex-wrap:wrap;gap:4px;">' + propsHtml + '</span>'
+        + '</div>'
+        + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">'
+        + '<div><div style="font-size:12px;color:rgba(0,0,0,0.45);margin-bottom:8px;">\u573a\u666f\u56fe\u7247</div>' + imgsHtml + '</div>'
+        + '<div><div style="font-size:12px;color:rgba(0,0,0,0.45);margin-bottom:8px;">\u573a\u666f\u89c6\u9891</div>' + vidsHtml + '</div>'
+        + '</div>'
+        + '</div>'
+        // Section 3: Related Config
+        + '<hr style="border:none;border-top:1px solid #f0f0f0;margin:16px 0;">'
+        + '<div>'
+        + '<h4 style="margin:0 0 12px;font-size:14px;font-weight:500;color:rgba(0,0,0,0.85);">\u5173\u8054\u914d\u7f6e</h4>'
+        + '<div style="display:grid;grid-template-columns:110px 1fr;gap:14px 16px;font-size:13px;align-items:start;">'
+        + '<span style="color:rgba(0,0,0,0.45);">\u8bc4\u4ef7\u6807\u51c6</span><span>' + cri + '</span>'
+        + '<span style="color:rgba(0,0,0,0.45);">\u63d0\u793a\u8bcd (' + d.prompts.length + ')</span><div>' + promptsHtml + '</div>'
+        + '</div></div>';
+      document.getElementById('bm-detail-body').innerHTML = html;
+      openModal('bm-detail-modal');
     }}
     // Generic tree-selector initializer — used for both task-tags and bm-tags
     function tagTreeInit(wrapId, hiddenId, placeholder) {{
@@ -3144,6 +3264,42 @@ def tasks_page():
     }}
     tagTreeInit('ts-task-tags', 'task-tags-hidden', '\u9009\u62e9\u6807\u7b7e');
     function tsToggle(id) {{ document.getElementById(id).classList.toggle('open'); }}
+    // Checkpoint max-2 limit
+    function ckptLimitChange(cb) {{
+      var panel = document.getElementById('ms-ckpt-panel');
+      var checked = panel.querySelectorAll('input[type=checkbox]:checked');
+      if (checked.length > 2) {{
+        cb.checked = false;
+        if (window.showToast) window.showToast('\u6700\u591a\u9009 2 \u4e2a Checkpoint', 'warning');
+      }}
+      mselSync('ms-ckpt');
+    }}
+    // Form validation: checkpoint must have exactly 2
+    function validateTaskForm() {{
+      var hidden = document.getElementById('ms-ckpt-hidden');
+      var ids = (hidden && hidden.value) ? hidden.value.split(',').filter(Boolean) : [];
+      if (ids.length !== 2) {{
+        if (window.showToast) window.showToast('Checkpoint \u5fc5\u987b\u9009 2 \u4e2a\uff0c\u5f53\u524d\u9009\u4e86 ' + ids.length + ' \u4e2a', 'warning');
+        // highlight the field briefly
+        var trig = document.getElementById('ms-ckpt-btn');
+        if (trig) {{
+          trig.style.borderColor = '#ff4d4f';
+          setTimeout(function() {{ trig.style.borderColor = ''; }}, 2500);
+        }}
+        return false;
+      }}
+      return true;
+    }}
+    // Deploy mode auto-populated from device
+    function syncDeployMode(device) {{
+      var text = document.getElementById('task-deploy-mode-text');
+      var hidden = document.getElementById('task-deploy-mode');
+      var mode = '';
+      if (device === 'moz') mode = '\u672c\u5730\u90e8\u7f72';
+      else if (device === 'Franka') mode = '\u4e91\u7aef\u90e8\u7f72';
+      text.value = mode || '--';
+      hidden.value = mode;
+    }}
     document.addEventListener('click', function(e) {{
       document.querySelectorAll('.ts-wrap.open').forEach(function(w) {{
         if (!w.contains(e.target)) w.classList.remove('open');
@@ -3869,43 +4025,86 @@ def collect_prep(task_id):
     et = CRITERIA_TYPES.get(task.get("eval_type", ""), {})
     pct = round(task["completed_sessions"] / task["total_sessions"] * 100) if task["total_sessions"] > 0 else 0
 
-    # Scene
+    # Scene info — match the new benchmark scene structure (scene_description / props / images / videos)
     sc = get_scene(bm.get("scene_id", "")) if bm else None
     scene_html = ""
-    if sc:
-        env = sc.get("environment", {})
-        ws = env.get("workspace", {})
-        cond = env.get("conditions", {})
-        objs = sc.get("objects", [])
-        refs = sc.get("references", {})
-        obj_tags = " ".join(f'<span class="ant-tag">{o["name"]} \u00d7{o.get("count",1)}</span>' for o in objs)
-        ref_items = ""
-        for img in refs.get("images", []):
-            ref_items += '<div style="background:#e8e8e8;width:160px;height:100px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:rgba(0,0,0,0.25);flex-shrink:0;">IMG</div>'
-        for v in refs.get("demo_videos", []):
-            dur = f' ({v.get("duration",0)}s)' if v.get("duration") else ""
-            ref_items += f'<div style="background:#1a1a2e;width:160px;height:100px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.3);font-size:20px;flex-shrink:0;">&#9654;</div>'
-        scene_refs = f'<div style="margin-top:12px;"><div style="display:flex;gap:8px;overflow-x:auto;">{ref_items}</div></div>' if ref_items else ""
+    if bm:
+        # Scene description: explicit field, fallback to linked scene description
+        scene_desc = bm.get("scene_description", "").strip() if bm else ""
+        if not scene_desc and sc:
+            env = sc.get("environment", {})
+            ws = env.get("workspace", {})
+            cond = env.get("conditions", {})
+            scene_desc = f'{sc.get("description","")} \u00b7 \u5de5\u4f5c\u533a {ws.get("length",0)}x{ws.get("width",0)}x{ws.get("height",0)}cm \u00b7 {cond.get("lighting","")}'
+        scene_desc_html = scene_desc if scene_desc else '<span style="color:rgba(0,0,0,0.25);">\u2014</span>'
+
+        # Props
+        props_raw = bm.get("props", "").strip() if bm else ""
+        if not props_raw and sc:
+            props_raw = "\u3001".join(o.get("name", "") for o in sc.get("objects", []) if o.get("name"))
+        props_html = ""
+        if props_raw:
+            for prop in [x.strip() for x in props_raw.replace("\uff0c", ",").replace("\u3001", ",").split(",") if x.strip()]:
+                props_html += f'<span class="ant-tag">{prop}</span>'
+        if not props_html:
+            props_html = '<span style="color:rgba(0,0,0,0.25);">\u2014</span>'
+
+        # Images / videos (from scene references)
+        refs = sc.get("references", {}) if sc else {}
+        imgs_list = refs.get("images", [])
+        videos_list = refs.get("capture_videos", []) + refs.get("demo_videos", [])
+        _empty = '<span style="color:rgba(0,0,0,0.25);">\u2014</span>'
+        if imgs_list:
+            img_items = ""
+            for i, im in enumerate(imgs_list):
+                desc = im.get("description", f"\u56fe\u7247 {i+1}")
+                url = im.get("url", "")
+                img_items += (
+                    f'<div class="media-card" onclick="window.openMediaViewer(\'image\', {i!r}, {desc!r}, {url!r})">'
+                    f'<div class="media-thumb"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#8dcde0" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>'
+                    f'<div class="media-desc">{desc}</div>'
+                    f'</div>'
+                )
+            img_grid = f'<div class="media-grid">{img_items}</div>'
+        else:
+            img_grid = _empty
+        if videos_list:
+            vid_items = ""
+            for i, v in enumerate(videos_list):
+                desc = v.get("description", f"\u89c6\u9891 {i+1}")
+                url = v.get("url", "")
+                dur = v.get("duration", 0)
+                dur_str = f" &middot; {dur}s" if dur else ""
+                vid_items += (
+                    f'<div class="media-card" onclick="window.openMediaViewer(\'video\', {i!r}, {desc!r}, {url!r})">'
+                    f'<div class="media-thumb media-thumb-video"><svg width="28" height="28" viewBox="0 0 24 24" fill="#1F80A0"><polygon points="6 4 20 12 6 20"/></svg></div>'
+                    f'<div class="media-desc">{desc}{dur_str}</div>'
+                    f'</div>'
+                )
+            vid_grid = f'<div class="media-grid">{vid_items}</div>'
+        else:
+            vid_grid = _empty
+
         scene_html = f'''
         <div class="ant-card ant-card-bordered" style="margin-bottom:16px;">
-          <div style="padding:12px 20px;border-bottom:1px solid #f0f0f0;font-size:15px;font-weight:500;">\u573a\u666f\u4fe1\u606f \u2014 {sc["name"]}</div>
+          <div style="padding:12px 20px;border-bottom:1px solid #f0f0f0;font-size:15px;font-weight:500;">\u573a\u666f\u4fe1\u606f</div>
           <div class="ant-card-body">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-              <div style="background:#fafafa;border-radius:8px;padding:14px;">
-                <div style="font-size:13px;font-weight:500;margin-bottom:8px;">\u73af\u5883\u53c2\u6570</div>
-                <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 16px;font-size:13px;">
-                  <span style="color:rgba(0,0,0,0.45);">\u7c7b\u578b</span><span><span class="ant-tag ant-tag-cyan">{env.get("type","")}</span></span>
-                  <span style="color:rgba(0,0,0,0.45);">\u5de5\u4f5c\u533a</span><span>{ws.get("length",0)} \u00d7 {ws.get("width",0)} \u00d7 {ws.get("height",0)} cm</span>
-                  <span style="color:rgba(0,0,0,0.45);">\u5149\u7167</span><span>{cond.get("lighting","--")}</span>
-                  <span style="color:rgba(0,0,0,0.45);">\u53f0\u9762</span><span>{cond.get("surface","--")}</span>
-                </div>
+            <div style="display:grid;grid-template-columns:110px 1fr;gap:12px 16px;font-size:14px;align-items:start;margin-bottom:16px;">
+              <span style="color:rgba(0,0,0,0.45);">\u573a\u666f\u63cf\u8ff0</span>
+              <span style="line-height:1.8;">{scene_desc_html}</span>
+              <span style="color:rgba(0,0,0,0.45);">\u4efb\u52a1\u9053\u5177</span>
+              <span style="display:flex;flex-wrap:wrap;gap:4px;">{props_html}</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+              <div>
+                <div style="font-size:13px;color:rgba(0,0,0,0.45);margin-bottom:8px;">\u573a\u666f\u56fe\u7247</div>
+                {img_grid}
               </div>
-              <div style="background:#fafafa;border-radius:8px;padding:14px;">
-                <div style="font-size:13px;font-weight:500;margin-bottom:8px;">\u7269\u4f53\u6e05\u5355 ({len(objs)} \u79cd)</div>
-                <div style="display:flex;flex-wrap:wrap;gap:4px;">{obj_tags if obj_tags else "--"}</div>
+              <div>
+                <div style="font-size:13px;color:rgba(0,0,0,0.45);margin-bottom:8px;">\u573a\u666f\u89c6\u9891</div>
+                {vid_grid}
               </div>
             </div>
-            {scene_refs}
           </div>
         </div>'''
 
@@ -4200,7 +4399,6 @@ def evaluate_list():
     empty = '<tr><td colspan="5" style="text-align:center;padding:40px;color:rgba(0,0,0,0.25);">\u6682\u65e0\u5f85\u8bc4\u6d4b\u4efb\u52a1</td></tr>' if not rows else ""
 
     content = f'''
-    <div style="background:#fff7e6;border:1px solid #ffd591;border-radius:8px;padding:8px 16px;margin-bottom:12px;font-size:13px;color:#ad6800;display:flex;align-items:center;gap:8px;"><span style="font-size:16px;">&#9888;</span> \u6548\u679c\u793a\u610f\uff0cHL \u805a\u5408\u8bc4\u6d4b or LL \u6253\u6563\u8bc4\u6d4b\uff0c\u6700\u7ec8\u4e8c\u9009\u4e00</div>
     <div class="filter-bar">
       <input type="text" id="f-id" placeholder="\u4efb\u52a1 ID" style="min-width:120px;">
       <select id="f-bm" style="min-width:140px;"><option value="">Benchmark</option>{"".join(f'<option>{b["name"]}</option>' for b in BENCHMARKS)}</select>
@@ -4707,7 +4905,6 @@ def evaluate2_list():
     empty = '<tr><td colspan="5" style="text-align:center;padding:40px;color:rgba(0,0,0,0.25);">\u6682\u65e0\u5f85\u8bc4\u6d4b\u4efb\u52a1</td></tr>' if not rows else ""
 
     content = f'''
-    <div style="background:#fff7e6;border:1px solid #ffd591;border-radius:8px;padding:8px 16px;margin-bottom:12px;font-size:13px;color:#ad6800;display:flex;align-items:center;gap:8px;"><span style="font-size:16px;">&#9888;</span> \u6548\u679c\u793a\u610f\uff0cHL \u805a\u5408\u8bc4\u6d4b or LL \u6253\u6563\u8bc4\u6d4b\uff0c\u6700\u7ec8\u4e8c\u9009\u4e00</div>
     <div class="filter-bar">
       <input type="text" id="f2-id" placeholder="\u4efb\u52a1 ID" style="min-width:120px;">
       <select id="f2-bm" style="min-width:140px;"><option value="">Benchmark</option>{"".join(f'<option>{b["name"]}</option>' for b in BENCHMARKS)}</select>
@@ -5052,7 +5249,7 @@ def eval_records_page():
             r_key = "B\u80dc"
         detail_url = f"/tasks/{r['task_id']}/data/{r['exec_id']}?pid={r['prompt_id']}"
         task_rows_html += (
-            f'<tr data-taskid="{r["task_id"]}" data-result="{r_key}" data-hl="{r["high_level"]}" data-ll="{r["low_level"]}">'
+            f'<tr data-taskid="{r["task_id"]}" data-result="{r_key}" data-hl="{r["high_level"]}" data-ll="{r["low_level"]}" data-model-a="{r["model_a"]}" data-model-b="{r["model_b"]}">'
             f'<td style="font-weight:500;">{r["task_no"]}</td>'
             f'<td>{r["task_name"]}</td>'
             f'<td>{r["high_level"]}</td>'
@@ -5148,6 +5345,7 @@ def eval_records_page():
       </div>
       <!-- Row 2: text filters + export -->
       <div class="filter-bar" style="margin-bottom:16px;">
+        <input type="text" id="f-task-model" placeholder="\u8f93\u5165 checkpoint\uff0c\u641c\u7d22\u5176\u4f5c\u4e3a\u8bc4\u6d4b\u6a21\u578b\u7684\u8bb0\u5f55" style="min-width:300px;">
         <input type="text" id="f-task-hl" placeholder="High Level" style="min-width:180px;">
         <input type="text" id="f-task-ll" placeholder="Low Level" style="min-width:180px;">
         <button class="ant-btn" onclick="erTaskClear()">\u6e05\u7a7a</button>
@@ -5311,12 +5509,16 @@ def eval_records_page():
       var cbs = document.querySelectorAll('#er-task-panel input[type=checkbox]');
       var sel = Array.prototype.filter.call(cbs, function(cb) {{ return cb.checked; }}).map(function(cb) {{ return cb.value; }});
       var setSel = new Set(sel);
+      var mdl = (document.getElementById('f-task-model').value || '').trim().toLowerCase();
       var hl = (document.getElementById('f-task-hl').value || '').trim().toLowerCase();
       var ll = (document.getElementById('f-task-ll').value || '').trim().toLowerCase();
       var matchCount = 0;
       document.querySelectorAll('#er-task-tbl tbody tr').forEach(function(tr) {{
         if (!tr.dataset.taskid) {{ tr.dataset.match = '1'; return; }}
+        var ma = (tr.dataset.modelA || '').toLowerCase();
+        var mb = (tr.dataset.modelB || '').toLowerCase();
         var ok = setSel.has(tr.dataset.taskid)
+              && (!mdl || ma.indexOf(mdl) >= 0 || mb.indexOf(mdl) >= 0)
               && (!hl || (tr.dataset.hl || '').toLowerCase().indexOf(hl) >= 0)
               && (!ll || (tr.dataset.ll || '').toLowerCase().indexOf(ll) >= 0);
         tr.dataset.match = ok ? '1' : '0';
@@ -5327,6 +5529,7 @@ def eval_records_page():
       if (window.showToast && window._erInitDone) window.showToast('\u7b5b\u9009\u51fa ' + matchCount + ' \u6761\u8bb0\u5f55', 'info');
     }}
     function erTaskClear() {{
+      document.getElementById('f-task-model').value = '';
       document.getElementById('f-task-hl').value = '';
       document.getElementById('f-task-ll').value = '';
       document.querySelectorAll('#er-task-panel input[type=checkbox]').forEach(function(cb) {{ cb.checked = true; }});
@@ -5412,7 +5615,7 @@ def eval_records_page():
       }});
     }});
     // Enter key triggers search on filter inputs
-    ['f-task-hl', 'f-task-ll'].forEach(function(id) {{
+    ['f-task-model', 'f-task-hl', 'f-task-ll'].forEach(function(id) {{
       var el = document.getElementById(id);
       if (el) el.addEventListener('keydown', function(e) {{ if (e.key === 'Enter') {{ e.preventDefault(); erApplyTask(); }} }});
     }});
