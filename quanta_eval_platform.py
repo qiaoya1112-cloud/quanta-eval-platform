@@ -836,6 +836,7 @@ a:hover { color: #176a88; }
 /* ── Form layout ── */
 .form-group { margin-bottom: 16px; }
 .form-group label { display: block; font-size: 14px; color: rgba(0,0,0,0.85); margin-bottom: 4px; }
+.form-group label.req::before { content: '* '; color: #ff4d4f; margin-right: 2px; }
 .form-group input[type="text"], .form-group input[type="number"], .form-group input[type="date"], .form-group input[type="time"], .form-group input[type="datetime-local"], .form-group input[type="email"], .form-group input[type="password"], .form-group input[type="url"], .form-group select, .form-group textarea,
 .filter-bar input, .filter-bar select { padding: 5px 12px; height: 36px; border: 1px solid #d9d9d9; border-radius: 8px; font-size: 14px; color: rgba(0,0,0,0.85); outline: none; transition: all 0.3s; font-family: inherit; box-sizing: border-box; -webkit-appearance: none; appearance: none; background: #fff; }
 .form-group select, .filter-bar select { padding-right: 32px; background: #fff url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23595959' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center; }
@@ -2974,9 +2975,9 @@ def tasks_page():
     # Tag tree selector for task labels
     task_tag_tree = build_tree_selector_html("task-tags")
 
-    # Checkpoint options (mselSync pattern, max 2 selections enforced in JS)
+    # Checkpoint options (mselSync pattern)
     ckpt_ms_opts = "".join(
-        f'<label class="er-opt"><input type="checkbox" value="{m["id"]}" data-name="{m["name"]}" onchange="ckptLimitChange(this)"> <span>{m["name"]} <span style="color:rgba(0,0,0,0.35);">{m["version"]}</span></span></label>'
+        f'<label class="er-opt"><input type="checkbox" value="{m["id"]}" data-name="{m["name"]}" onchange="mselSync(\'ms-ckpt\')"> <span>{m["name"]} <span style="color:rgba(0,0,0,0.35);">{m["version"]}</span></span></label>'
         for m in MODELS
     )
     type_filter_opts = "".join(f'<option value="{k}">{v["label"]}</option>' for k, v in CRITERIA_TYPES.items())
@@ -3025,17 +3026,17 @@ def tasks_page():
           <!-- Section 1: Basic Info -->
           <h4 style="font-size:14px;font-weight:500;margin-bottom:12px;color:rgba(0,0,0,0.85);">\u57fa\u7840\u4fe1\u606f</h4>
           <div class="form-row">
-            <div class="form-group"><label>\u4efb\u52a1\u540d\u79f0</label><div class="input-clear-wrap"><input type="text" name="name" required><span class="input-clear" onclick="this.previousElementSibling.value=''">&times;</span></div></div>
-            <div class="form-group"><label>\u5411\u8bc4\u6d4b\u5458\u5c55\u793a\u540d\u79f0</label><div class="input-clear-wrap"><input type="text" name="display_name" placeholder="\u5efa\u8bae\u4e0d\u8981\u5305\u542b\u6a21\u578b\u4fe1\u606f"><span class="input-clear" onclick="this.previousElementSibling.value=''">&times;</span></div></div>
-            <div class="form-group"><label>\u6240\u5c5e\u9879\u76ee</label><select name="project"><option value="">\u8bf7\u9009\u62e9</option><option>\u57fa\u7840\u7814\u7a76</option><option>\u5b81\u5fb7\u5e94\u7528</option><option>moz1</option><option>spirit</option><option>demo\u91c7\u96c6</option><option>\u9884\u8bad\u7ec3\u91c7\u96c6</option><option>\u591a\u4efb\u52a1</option></select></div>
+            <div class="form-group"><label class="req">\u4efb\u52a1\u540d\u79f0</label><div class="input-clear-wrap"><input type="text" name="name" required><span class="input-clear" onclick="this.previousElementSibling.value=''">&times;</span></div></div>
+            <div class="form-group"><label class="req">\u5411\u8bc4\u6d4b\u5458\u5c55\u793a\u540d\u79f0</label><div class="input-clear-wrap"><input type="text" name="display_name" required placeholder="\u5efa\u8bae\u4e0d\u8981\u5305\u542b\u6a21\u578b\u4fe1\u606f"><span class="input-clear" onclick="this.previousElementSibling.value=''">&times;</span></div></div>
+            <div class="form-group"><label class="req">\u6240\u5c5e\u9879\u76ee</label><select name="project" required><option value="">\u8bf7\u9009\u62e9</option><option>\u57fa\u7840\u7814\u7a76</option><option>\u5b81\u5fb7\u5e94\u7528</option><option>moz1</option><option>spirit</option><option>demo\u91c7\u96c6</option><option>\u9884\u8bad\u7ec3\u91c7\u96c6</option><option>\u591a\u4efb\u52a1</option></select></div>
           </div>
           <div class="form-row">
-            <div class="form-group"><label>\u91c7\u96c6\u7c7b\u578b</label><input type="text" value="test" disabled style="background:#f5f5f5;color:rgba(0,0,0,0.45);"></div>
-            <div class="form-group"><label>\u4f18\u5148\u7ea7</label><select name="priority"><option value="">\u8bf7\u9009\u62e9</option><option value="\u9ad8">\u9ad8</option><option value="\u4e2d" selected>\u4e2d</option><option value="\u4f4e">\u4f4e</option></select></div>
-            <div class="form-group"><label>\u9884\u671f\u4ea4\u4ed8\u65e5\u671f</label><div class="input-clear-wrap"><input type="date" name="due_date" style="width:100%;"><span class="input-clear" onclick="this.previousElementSibling.value=''">&times;</span></div></div>
+            <div class="form-group"><label class="req">\u91c7\u96c6\u7c7b\u578b</label><input type="text" value="test" disabled style="background:#f5f5f5;color:rgba(0,0,0,0.45);"></div>
+            <div class="form-group"><label class="req">\u4f18\u5148\u7ea7</label><select name="priority" required><option value="">\u8bf7\u9009\u62e9</option><option value="\u9ad8">\u9ad8</option><option value="\u4e2d" selected>\u4e2d</option><option value="\u4f4e">\u4f4e</option></select></div>
+            <div class="form-group"><label class="req">\u9884\u671f\u4ea4\u4ed8\u65e5\u671f</label><div class="input-clear-wrap"><input type="date" name="due_date" required style="width:100%;"><span class="input-clear" onclick="this.previousElementSibling.value=''">&times;</span></div></div>
           </div>
           <div class="form-group">
-            <label>\u4efb\u52a1\u6807\u7b7e (\u591a\u9009)</label>
+            <label class="req">\u4efb\u52a1\u6807\u7b7e (\u591a\u9009)</label>
             <div class="ts-wrap" id="ts-task-tags" style="max-width:100%;">
               <div class="ts-trigger" onclick="tsToggle('ts-task-tags')" style="min-height:36px;"><span class="ts-placeholder">\u9009\u62e9\u6807\u7b7e</span></div>
               <div class="ts-panel" style="max-height:280px;">{task_tag_tree}</div>
@@ -3049,13 +3050,13 @@ def tasks_page():
           <!-- Section 2: Eval Config -->
           <h4 style="font-size:14px;font-weight:500;margin-bottom:12px;color:rgba(0,0,0,0.85);">\u8bc4\u6d4b\u914d\u7f6e</h4>
           <div class="form-row">
-            <div class="form-group"><label>\u8bc4\u6d4b\u672c\u4f53</label><select name="device" id="task-device" onchange="syncDeployMode(this.value)"><option value="">\u8bf7\u9009\u62e9</option><option value="moz">moz</option><option value="Franka">Franka</option></select></div>
-            <div class="form-group"><label>\u90e8\u7f72\u65b9\u5f0f</label><input type="text" id="task-deploy-mode-text" value="--" disabled style="background:#f5f5f5;color:rgba(0,0,0,0.45);"><input type="hidden" name="deploy_mode" id="task-deploy-mode"></div>
-            <div class="form-group"><label>\u8bc4\u6d4b\u6b21\u6570</label><div class="input-clear-wrap"><input type="number" name="total_sessions" value="30" min="1"><span class="input-clear" onclick="this.previousElementSibling.value=''">&times;</span></div></div>
+            <div class="form-group"><label class="req">\u8bc4\u6d4b\u672c\u4f53</label><select name="device" id="task-device" required onchange="syncDeployMode(this.value)"><option value="">\u8bf7\u9009\u62e9</option><option value="moz">moz</option><option value="Franka">Franka</option></select></div>
+            <div class="form-group"><label class="req">\u90e8\u7f72\u65b9\u5f0f</label><input type="text" id="task-deploy-mode-text" value="--" disabled style="background:#f5f5f5;color:rgba(0,0,0,0.45);"><input type="hidden" name="deploy_mode" id="task-deploy-mode"></div>
+            <div class="form-group"><label class="req">\u8bc4\u6d4b\u6b21\u6570</label><div class="input-clear-wrap"><input type="number" name="total_sessions" required value="30" min="1"><span class="input-clear" onclick="this.previousElementSibling.value=''">&times;</span></div></div>
           </div>
           <div class="form-row">
             <div class="form-group" style="grid-column:1/4;">
-              <label>Checkpoint (\u5fc5\u987b\u9009 2 \u4e2a)</label>
+              <label class="req">Checkpoint (\u591a\u9009\uff0c\u81f3\u5c11\u9009\u62e9\u4e24\u4e2a)</label>
               <div style="position:relative;">
                 <div class="er-dd-trigger" id="ms-ckpt-btn" onclick="mselToggle('ms-ckpt', event)">
                   <div id="ms-ckpt-chips" class="er-chips"></div>
@@ -3063,8 +3064,8 @@ def tasks_page():
                 </div>
                 <div class="er-dd-panel" id="ms-ckpt-panel" style="width:100%;">
                   <div style="padding:8px 12px;border-bottom:1px solid #f0f0f0;display:flex;gap:16px;align-items:center;">
-                    <span style="font-size:12px;color:rgba(0,0,0,0.45);">\u5fc5\u987b\u9009 2 \u4e2a</span>
-                    <a href="javascript:;" onclick="mselToggleAll('ms-ckpt', false)" style="font-size:12px;color:rgba(0,0,0,0.45);margin-left:auto;">\u6e05\u7a7a</a>
+                    <a href="javascript:;" onclick="mselToggleAll('ms-ckpt', true)" style="font-size:12px;color:#1F80A0;">\u5168\u9009</a>
+                    <a href="javascript:;" onclick="mselToggleAll('ms-ckpt', false)" style="font-size:12px;color:rgba(0,0,0,0.45);">\u6e05\u7a7a</a>
                   </div>
                   <div style="max-height:240px;overflow-y:auto;padding:6px 0;">
                     {ckpt_ms_opts}
@@ -3077,8 +3078,8 @@ def tasks_page():
 
           <!-- Benchmark (merged into Eval Config) -->
           <div class="form-group" style="margin-top:4px;">
-            <label>Benchmark</label>
-            <select name="benchmark_id" id="bm-select" onchange="previewBm(this.value)" class="has-value">{bm_opts}</select>
+            <label class="req">Benchmark</label>
+            <select name="benchmark_id" id="bm-select" required onchange="previewBm(this.value)" class="has-value">{bm_opts}</select>
           </div>
           <!-- Benchmark preview: 3 rows -->
           <div id="bm-preview" style="margin-top:8px;padding:14px 16px;background:#fafafa;border-radius:8px;border:1px solid #f0f0f0;display:none;position:relative;">
@@ -3094,11 +3095,11 @@ def tasks_page():
           </div>
         </div>
         <!-- Benchmark detail modal (inline drawer) -->
-        <div class="ant-drawer-mask" id="bm-detail-modal">
+        <div class="ant-drawer-mask" id="bm-detail-modal" style="z-index:300;background:rgba(0,0,0,0.65);">
           <div class="ant-drawer-content" style="width:720px;max-width:90vw;">
             <div class="ant-drawer-header">
               <h3 id="bm-detail-title">Benchmark \u8be6\u60c5</h3>
-              <button class="ant-drawer-close" onclick="closeModal('bm-detail-modal')">&times;</button>
+              <button class="ant-drawer-close" onclick="closeBmDetail()">&times;</button>
             </div>
             <div class="ant-drawer-body">
               <div id="bm-detail-body" style="font-size:14px;"></div>
@@ -3128,6 +3129,17 @@ def tasks_page():
       d.prompts.forEach(function(p) {{ ph += '<span class="ant-tag">'+p.name+' ('+p.steps+'\u6b65)</span>'; }});
       document.getElementById('bm-pv-prompts').innerHTML = ph;
     }}
+    function closeBmDetail() {{
+      closeModal('bm-detail-modal');
+    }}
+    // Hoist bm-detail-modal to document.body so it's not a DOM child of the task drawer
+    // (otherwise it would inherit stacking/display from the parent drawer)
+    (function() {{
+      var bmMask = document.getElementById('bm-detail-modal');
+      if (bmMask && bmMask.parentElement !== document.body) {{
+        document.body.appendChild(bmMask);
+      }}
+    }})();
     function openBmDetail() {{
       if (!bmCurrentId) return;
       var d = bmData[bmCurrentId];
@@ -3264,23 +3276,50 @@ def tasks_page():
     }}
     tagTreeInit('ts-task-tags', 'task-tags-hidden', '\u9009\u62e9\u6807\u7b7e');
     function tsToggle(id) {{ document.getElementById(id).classList.toggle('open'); }}
-    // Checkpoint max-2 limit
-    function ckptLimitChange(cb) {{
-      var panel = document.getElementById('ms-ckpt-panel');
-      var checked = panel.querySelectorAll('input[type=checkbox]:checked');
-      if (checked.length > 2) {{
-        cb.checked = false;
-        if (window.showToast) window.showToast('\u6700\u591a\u9009 2 \u4e2a Checkpoint', 'warning');
-      }}
-      mselSync('ms-ckpt');
-    }}
-    // Form validation: checkpoint must have exactly 2
+    // Form validation: all fields required except \u4efb\u52a1\u63cf\u8ff0
     function validateTaskForm() {{
+      function fail(msg, el) {{
+        if (window.showToast) window.showToast(msg, 'warning');
+        if (el) {{
+          var targetEl = el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA' ? el : null;
+          if (targetEl) {{
+            targetEl.focus();
+            targetEl.style.borderColor = '#ff4d4f';
+            setTimeout(function() {{ targetEl.style.borderColor = ''; }}, 2500);
+          }}
+        }}
+        return false;
+      }}
+      var form = document.querySelector('#create-task-drawer form');
+      // Sequential required-field checks
+      var nameEl = form.querySelector('input[name="name"]');
+      if (!nameEl.value.trim()) return fail('\u8bf7\u586b\u5199\u4efb\u52a1\u540d\u79f0', nameEl);
+      var disp = form.querySelector('input[name="display_name"]');
+      if (!disp.value.trim()) return fail('\u8bf7\u586b\u5199\u5411\u8bc4\u6d4b\u5458\u5c55\u793a\u540d\u79f0', disp);
+      var proj = form.querySelector('select[name="project"]');
+      if (!proj.value) return fail('\u8bf7\u9009\u62e9\u6240\u5c5e\u9879\u76ee', proj);
+      var pri = form.querySelector('select[name="priority"]');
+      if (!pri.value) return fail('\u8bf7\u9009\u62e9\u4f18\u5148\u7ea7', pri);
+      var due = form.querySelector('input[name="due_date"]');
+      if (!due.value) return fail('\u8bf7\u9009\u62e9\u9884\u671f\u4ea4\u4ed8\u65e5\u671f', due);
+      var tagHidden = document.getElementById('task-tags-hidden');
+      if (!tagHidden.value) {{
+        if (window.showToast) window.showToast('\u8bf7\u9009\u62e9\u4efb\u52a1\u6807\u7b7e', 'warning');
+        var tagTrig = document.querySelector('#ts-task-tags .ts-trigger');
+        if (tagTrig) {{
+          tagTrig.style.borderColor = '#ff4d4f';
+          setTimeout(function() {{ tagTrig.style.borderColor = ''; }}, 2500);
+        }}
+        return false;
+      }}
+      var dev = form.querySelector('select[name="device"]');
+      if (!dev.value) return fail('\u8bf7\u9009\u62e9\u8bc4\u6d4b\u672c\u4f53', dev);
+      var sessions = form.querySelector('input[name="total_sessions"]');
+      if (!sessions.value || parseInt(sessions.value) < 1) return fail('\u8bf7\u586b\u5199\u8bc4\u6d4b\u6b21\u6570', sessions);
       var hidden = document.getElementById('ms-ckpt-hidden');
       var ids = (hidden && hidden.value) ? hidden.value.split(',').filter(Boolean) : [];
-      if (ids.length !== 2) {{
-        if (window.showToast) window.showToast('Checkpoint \u5fc5\u987b\u9009 2 \u4e2a\uff0c\u5f53\u524d\u9009\u4e86 ' + ids.length + ' \u4e2a', 'warning');
-        // highlight the field briefly
+      if (ids.length < 2) {{
+        if (window.showToast) window.showToast('Checkpoint \u81f3\u5c11\u9009 2 \u4e2a\uff0c\u5f53\u524d\u9009\u4e86 ' + ids.length + ' \u4e2a', 'warning');
         var trig = document.getElementById('ms-ckpt-btn');
         if (trig) {{
           trig.style.borderColor = '#ff4d4f';
@@ -3288,6 +3327,8 @@ def tasks_page():
         }}
         return false;
       }}
+      var bm = form.querySelector('select[name="benchmark_id"]');
+      if (!bm.value) return fail('\u8bf7\u9009\u62e9 Benchmark', bm);
       return true;
     }}
     // Deploy mode auto-populated from device
@@ -5012,10 +5053,14 @@ def evaluate2_run(task_id):
     </div>
 
     <!-- Video area: grey bg, white video cards, fixed height container -->
+    <!-- Demo toggle: unpaired state -->
+    <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+      <button type="button" class="ant-btn ant-btn-sm" onclick="togglePaired()" id="unpaired-btn">\u672a\u914d\u5bf9\u60c5\u51b5</button>
+    </div>
     <div style="background:#f0f0f0;border-radius:8px;padding:12px;margin-bottom:16px;">
       <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:start;">
         <!-- Model A -->
-        <div style="background:#fff;border-radius:8px;overflow:hidden;">
+        <div id="v2-card-a" style="background:#fff;border-radius:8px;overflow:hidden;">
           <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;">
             <span style="font-size:15px;font-weight:600;">\u6a21\u578b A</span>
             <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:rgba(0,0,0,0.45);cursor:pointer;">\u5c55\u5f00\u8155\u90e8\u89c6\u89d2
@@ -5023,7 +5068,7 @@ def evaluate2_run(task_id):
             </label>
           </div>
           <!-- Fixed height video zone -->
-          <div style="height:360px;display:flex;gap:4px;padding:0 4px 4px;background:#000;">
+          <div id="v2-video-a" style="height:360px;display:flex;gap:4px;padding:0 4px 4px;background:#000;">
             <div id="v2-main-a" style="flex:1;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.25);font-size:13px;">\u4e3b\u6444\u89c6\u89d2 &middot; 640x480</div>
             <div id="v2-wrist-a" style="display:none;flex-direction:column;gap:4px;width:180px;">
               <div style="flex:1;background:#1a1a2e;border-radius:4px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.2);font-size:10px;">\u5de6\u8155\u89c6\u89d2</div>
@@ -5035,14 +5080,14 @@ def evaluate2_run(task_id):
         <div style="padding:0 10px;font-size:14px;color:rgba(0,0,0,0.15);font-weight:600;align-self:center;">VS</div>
 
         <!-- Model B -->
-        <div style="background:#fff;border-radius:8px;overflow:hidden;">
+        <div id="v2-card-b" style="background:#fff;border-radius:8px;overflow:hidden;">
           <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;">
             <span style="font-size:15px;font-weight:600;">\u6a21\u578b B</span>
             <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:rgba(0,0,0,0.45);cursor:pointer;">\u5c55\u5f00\u8155\u90e8\u89c6\u89d2
               <label class="capsule" id="sw-b" onclick="this.classList.toggle('on');toggleWrist('b');"><span class="capsule-dot"></span></label>
             </label>
           </div>
-          <div style="height:360px;display:flex;gap:4px;padding:0 4px 4px;background:#000;">
+          <div id="v2-video-b" style="height:360px;display:flex;gap:4px;padding:0 4px 4px;background:#000;">
             <div id="v2-main-b" style="flex:1;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.25);font-size:13px;">\u4e3b\u6444\u89c6\u89d2 &middot; 640x480</div>
             <div id="v2-wrist-b" style="display:none;flex-direction:column;gap:4px;width:180px;">
               <div style="flex:1;background:#1a1a2e;border-radius:4px;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.2);font-size:10px;">\u5de6\u8155\u89c6\u89d2</div>
@@ -5101,6 +5146,76 @@ def evaluate2_run(task_id):
       var wrist = document.getElementById('v2-wrist-'+side);
       var isOn = document.getElementById('sw-'+side).classList.contains('on');
       wrist.style.display = isOn ? 'flex' : 'none';
+    }}
+    // Demo: cycle unpaired state — normal -> A unpaired -> B unpaired -> normal
+    var _pairedState = 0; // 0=normal, 1=A unpaired, 2=B unpaired
+    var _videoOrigA = null, _videoOrigB = null;
+    function _setVideoEmpty(side) {{
+      var el = document.getElementById('v2-video-'+side);
+      el.style.background = '#fafafa';
+      el.style.border = '1px dashed #d9d9d9';
+      el.innerHTML = '<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:rgba(0,0,0,0.35);gap:8px;"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#bfbfbf" stroke-width="1.2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg><div style="font-size:14px;">\u65e0\u6267\u884c\u7ed3\u679c</div><div style="font-size:12px;color:rgba(0,0,0,0.25);">\u6a21\u578b ' + side.toUpperCase() + ' \u672a\u8fd0\u884c\u6b64\u6761\u8bb0\u5f55</div></div>';
+    }}
+    function _restoreVideo(side, html) {{
+      var el = document.getElementById('v2-video-'+side);
+      el.style.background = '#000';
+      el.style.border = '';
+      el.innerHTML = html;
+    }}
+    function _setProgDisabled(side, disabled) {{
+      var s = document.getElementById('v2-prog-'+side);
+      s.disabled = disabled;
+      s.style.opacity = disabled ? '0.4' : '';
+      s.style.cursor = disabled ? 'not-allowed' : '';
+    }}
+    function _setPrefDisabled(disabled) {{
+      document.querySelectorAll('.pref-opt').forEach(function(b) {{
+        if (disabled) {{
+          b.setAttribute('disabled', 'true');
+          b.style.opacity = '0.4';
+          b.style.cursor = 'not-allowed';
+          b.style.pointerEvents = 'none';
+        }} else {{
+          b.removeAttribute('disabled');
+          b.style.opacity = '';
+          b.style.cursor = '';
+          b.style.pointerEvents = '';
+        }}
+      }});
+    }}
+    function togglePaired() {{
+      if (_videoOrigA === null) _videoOrigA = document.getElementById('v2-video-a').innerHTML;
+      if (_videoOrigB === null) _videoOrigB = document.getElementById('v2-video-b').innerHTML;
+      _pairedState = (_pairedState + 1) % 3;
+      var btn = document.getElementById('unpaired-btn');
+      if (_pairedState === 0) {{
+        // Normal paired
+        _restoreVideo('a', _videoOrigA);
+        _restoreVideo('b', _videoOrigB);
+        _setProgDisabled('a', false);
+        _setProgDisabled('b', false);
+        _setPrefDisabled(false);
+        btn.textContent = '\u672a\u914d\u5bf9\u60c5\u51b5';
+        btn.classList.remove('ant-btn-primary');
+      }} else if (_pairedState === 1) {{
+        // A unpaired
+        _setVideoEmpty('a');
+        _restoreVideo('b', _videoOrigB);
+        _setProgDisabled('a', true);
+        _setProgDisabled('b', false);
+        _setPrefDisabled(true);
+        btn.textContent = 'A \u672a\u914d\u5bf9 (\u70b9\u51fb\u5207\u6362)';
+        btn.classList.add('ant-btn-primary');
+      }} else {{
+        // B unpaired
+        _restoreVideo('a', _videoOrigA);
+        _setVideoEmpty('b');
+        _setProgDisabled('a', false);
+        _setProgDisabled('b', true);
+        _setPrefDisabled(true);
+        btn.textContent = 'B \u672a\u914d\u5bf9 (\u70b9\u51fb\u5207\u6362)';
+        btn.classList.add('ant-btn-primary');
+      }}
     }}
     document.getElementById('v2-prog-a').addEventListener('input', function() {{
       document.getElementById('v2-prog-a-v').textContent = Math.round(this.value);
