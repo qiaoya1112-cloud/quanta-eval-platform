@@ -3366,6 +3366,14 @@ def tasks_create():
         "id": f"t{len(EVAL_TASKS)+1}",
         "task_no": new_no,
         "name": name,
+        "display_name": request.form.get("display_name", "").strip() or name,
+        "project": request.form.get("project", "").strip(),
+        "collect_type": "test",
+        "due_date": request.form.get("due_date", "").strip(),
+        "task_tags": [t.strip() for t in request.form.get("task_tags", "").split(",") if t.strip()],
+        "description": request.form.get("description", "").strip(),
+        "device": request.form.get("device", "").strip(),
+        "deploy_mode": request.form.get("deploy_mode", "").strip(),
         "benchmark_id": request.form.get("benchmark_id", ""),
         "eval_type": request.form.get("eval_type", "preference"),
         "model_ids": model_ids,
@@ -3383,82 +3391,112 @@ def tasks_create():
 # ── Collection Management ──
 @app.route("/collections")
 def collections_page():
-    """Collection management: task × model split view."""
-    # Generate collection records from tasks
+    """Collection management: task split by checkpoint."""
+    # Generate one row per (task, checkpoint) pair
     records = []
     for t in EVAL_TASKS:
         bm = get_benchmark(t["benchmark_id"])
         bm_name = bm["name"] if bm else "--"
-        et = CRITERIA_TYPES.get(t.get("eval_type", ""), {})
-        pri = PRIORITY_MAP.get(t.get("priority", "\u4e2d"), {})
         total = max(t.get("total_sessions", 1), 1)
-        # Per-model split: distribute collect_done evenly (mock)
         n_models = max(len(t["model_ids"]), 1)
-        per_model_total = total
         per_model_done = t.get("collect_done", 0) // n_models if n_models > 0 else 0
-
+        # Mock due_date = created_at + 14 days
+        try:
+            _created = datetime.strptime(t.get("created_at", ""), "%Y-%m-%d")
+            due_str = (_created + timedelta(days=14)).strftime("%Y-%m-%d")
+        except Exception:
+            due_str = "--"
         for mid in t["model_ids"]:
             m = next((x for x in MODELS if x["id"] == mid), None)
             if not m:
                 continue
-            # Determine collection status
-            if t["status"] == "\u672a\u5f00\u59cb":
-                c_status = "\u672a\u5f00\u59cb"
-            elif per_model_done >= per_model_total:
-                c_status = "\u5df2\u5b8c\u6210"
-            else:
-                c_status = "\u91c7\u96c6\u4e2d"
             records.append({
-                "task_name": t["name"], "task_id": t["id"],
-                "model_id": mid, "model_name": m["name"], "model_version": m["version"],
-                "benchmark": bm_name, "eval_type_label": et.get("label", ""),
-                "eval_type_color": et.get("color", ""),
-                "priority": pri, "creator": t["created_by"],
-                "total": per_model_total, "done": min(per_model_done, per_model_total),
-                "status": c_status,
+                "task_id": t["id"],
+                "task_name": t["name"],
+                "benchmark": bm_name,
+                "model_name": m["name"],
+                "model_version": m["version"],
+                "total": total,
+                "done": min(per_model_done, total),
+                "created_at": t.get("created_at", "--"),
+                "due_date": due_str,
             })
 
     rows = ""
     for r in records:
         pct = round(r["done"] / max(r["total"], 1) * 100)
-        s_colors = {"\u672a\u5f00\u59cb": "", "\u91c7\u96c6\u4e2d": "processing", "\u5df2\u5b8c\u6210": ""}
-        s_color = s_colors.get(r["status"], "")
-        s_tag = f'<span class="ant-tag ant-tag-{s_color}">{r["status"]}</span>' if s_color else f'<span class="ant-tag">{r["status"]}</span>'
-        pri_tag = f'<span class="ant-tag ant-tag-{r["priority"].get("color","")}">{r["priority"].get("label","")}</span>' if r["priority"].get("color") else f'<span class="ant-tag">{r["priority"].get("label","")}</span>'
-
+        view_btn = icon_btn(f"/tasks/{r['task_id']}", ICON_VIEW, "\u67e5\u770b\u8bc4\u6d4b\u4efb\u52a1", "default")
         rows += (
             "<tr>"
             f'<td style="font-weight:500;">{r["task_name"]}</td>'
+            f'<td>{r["benchmark"]}</td>'
             f'<td>{r["model_name"]} <span style="color:rgba(0,0,0,0.35);">{r["model_version"]}</span></td>'
-            f'<td><span class="ant-tag ant-tag-{r["eval_type_color"]}">{r["eval_type_label"]}</span></td>'
-            f'<td><span class="ant-tag">{r["benchmark"]}</span></td>'
-            f"<td>{s_tag}</td>"
-            f'<td style="min-width:140px;">'
+            f'<td style="min-width:160px;">'
             f'<div style="display:flex;align-items:center;gap:6px;">'
             f'<div style="flex:1;height:14px;background:#f0f0f0;border-radius:7px;overflow:hidden;position:relative;">'
             f'<div style="width:{pct}%;height:100%;background:#1F80A0;border-radius:7px;"></div>'
             f'<span class="pb-text" style="--pct:{pct}%;">{r["done"]}/{r["total"]}</span>'
             f'</div></div></td>'
-            f"<td>{pri_tag}</td>"
-            f"<td>{r['creator']}</td>"
-        )
-        task_btn = icon_btn(f"/tasks/{r['task_id']}", ICON_VIEW, "\u67e5\u770b\u4efb\u52a1", "default")
-        data_btn = icon_btn(f"/collections/{r['task_id']}/{r['model_id']}", ICON_DATA, "\u67e5\u770b\u6570\u636e", "primary")
-        rows += (
-            f'<td class="actions-cell">{task_btn}{data_btn}</td>'
+            f'<td style="font-size:13px;color:rgba(0,0,0,0.65);">{r["created_at"]}</td>'
+            f'<td style="font-size:13px;color:rgba(0,0,0,0.65);">{r["due_date"]}</td>'
+            f'<td class="actions-cell">{view_btn}</td>'
             "</tr>"
         )
+    empty = '<tr><td colspan="7" style="text-align:center;padding:40px;color:rgba(0,0,0,0.25);">\u6682\u65e0\u6570\u636e</td></tr>' if not rows else ""
 
-    cnt_not = sum(1 for r in records if r["status"] == "\u672a\u5f00\u59cb")
-    cnt_ing = sum(1 for r in records if r["status"] == "\u91c7\u96c6\u4e2d")
-    cnt_done = sum(1 for r in records if r["status"] == "\u5df2\u5b8c\u6210")
+    notice_info = '<div style="background:#e6f7ff;border:1px solid #91d5ff;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#0050b3;display:flex;align-items:center;gap:8px;line-height:1.8;"><span style="font-size:16px;">&#8505;</span><div>\u91c7\u96c6\u4efb\u52a1\uff0c\u65b0\u589e Eval \u7c7b\u578b</div></div>'
 
-    content = ''
-    notice_col = '<div style="background:#fff1f0;border:1px solid #ffa39e;border-radius:8px;padding:12px 16px;margin-bottom:12px;font-size:13px;color:#cf1322;display:flex;align-items:start;gap:8px;line-height:1.8;"><span style="font-size:16px;margin-top:1px;">&#9888;</span><div>MVP \u7248\u672c\uff0c\u6d4b\u8bd5\u6570\u636e\u91c7\u96c6\uff0c\u590d\u7528\u5f53\u524d\u300c\u91c7\u96c6\u9700\u6c42\u7ba1\u7406\u6a21\u5757 - \u6d4b\u8bd5\u4efb\u52a1\u7ba1\u7406\u300d\u7684\u80fd\u529b<br>\u5c06\u8bc4\u6d4b\u4efb\u52a1 <b>by checkpoint</b> \u62c6\u5206\u4e3a\u591a\u4e2a\u6d4b\u8bd5\u91c7\u96c6\u4efb\u52a1\uff0c\u590d\u7528\u5df2\u6709\u80fd\u529b</div></div>'
-    notice_info = '<div style="background:#e6f7ff;border:1px solid #91d5ff;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#0050b3;display:flex;align-items:start;gap:8px;line-height:1.8;"><span style="font-size:16px;margin-top:1px;">&#8505;</span><div><b>\u8bc4\u6d4b\u4efb\u52a1 \u2260 \u6d4b\u8bd5\u91c7\u96c6\u4efb\u52a1</b><br>\u539f\u56e0\uff1a\u540e\u7eed\u652f\u6301\u591a\u4e2a checkpoint\u300c\u73b0\u91c7\u6570\u636e\u5bf9\u6bd4\u8bc4\u4f30\u3001\u73b0\u91c7\u6570\u636e&amp;\u5b58\u91cf\u6570\u636e\u5bf9\u6bd4\u8bc4\u4f30\u3001\u5b58\u91cf\u6570\u636e\u5bf9\u6bd4\u8bc4\u4f30\u300d\u7b49\u573a\u666f<br>\u6240\u4ee5\u8bc4\u6d4b\u4efb\u52a1\u4e0e\u6d4b\u8bd5\u91c7\u96c6\u4efb\u52a1\u5206\u79bb\uff0c\u6709\u4e00\u4e2a\u62c6\u5305\u52a8\u4f5c\u662f\u5408\u9002\u7684</div></div>'
-    jump_btn = '<a href="http://quanta.test.spirit-ai.com/task/testingList" target="_blank" class="ant-btn ant-btn-primary" style="display:inline-flex;align-items:center;gap:6px;">\u524d\u5f80\u6d4b\u8bd5\u4efb\u52a1\u91c7\u96c6\u5217\u8868 <span style="font-size:12px;">&rarr;</span></a>'
-    return render_page("\u8bc4\u6d4b\u91c7\u96c6\u7ba1\u7406", notice_col + notice_info + jump_btn + content, active="collections")
-
+    table_html = f'''
+    <div class="filter-bar">
+      <input type="text" id="col-f-task" placeholder="\u91c7\u96c6\u4efb\u52a1\u540d\u79f0" style="min-width:180px;">
+      <input type="text" id="col-f-bm" placeholder="Benchmark" style="min-width:160px;">
+      <input type="text" id="col-f-ckpt" placeholder="Checkpoint" style="min-width:160px;">
+      <button class="ant-btn" onclick="colClear()">\u6e05\u7a7a</button>
+      <button class="ant-btn ant-btn-primary" onclick="colFilter()">\u641c\u7d22</button>
+    </div>
+    <div class="ant-card ant-card-bordered">
+      <table class="ant-table" id="col-tbl">
+        <thead><tr>
+          <th>\u8bc4\u6d4b\u4efb\u52a1\u540d\u79f0</th>
+          <th>Benchmark</th>
+          <th>Checkpoint</th>
+          <th>\u91c7\u96c6\u8fdb\u5ea6</th>
+          <th style="width:120px;">\u521b\u5efa\u65f6\u95f4</th>
+          <th style="width:120px;">\u9884\u671f\u4ea4\u4ed8\u65f6\u95f4</th>
+          <th style="width:120px;">\u64cd\u4f5c</th>
+        </tr></thead>
+        <tbody>{rows}{empty}</tbody>
+      </table>
+    </div>
+    <script>
+    function colFilter() {{
+      var ft = (document.getElementById('col-f-task').value || '').trim().toLowerCase();
+      var fb = (document.getElementById('col-f-bm').value || '').trim().toLowerCase();
+      var fc = (document.getElementById('col-f-ckpt').value || '').trim().toLowerCase();
+      document.querySelectorAll('#col-tbl tbody tr').forEach(function(tr) {{
+        if (tr.cells.length < 3) return;
+        var task = (tr.cells[0].textContent || '').toLowerCase();
+        var bm = (tr.cells[1].textContent || '').toLowerCase();
+        var ck = (tr.cells[2].textContent || '').toLowerCase();
+        var ok = (!ft || task.indexOf(ft) >= 0)
+              && (!fb || bm.indexOf(fb) >= 0)
+              && (!fc || ck.indexOf(fc) >= 0);
+        tr.style.display = ok ? '' : 'none';
+      }});
+    }}
+    function colClear() {{
+      document.getElementById('col-f-task').value = '';
+      document.getElementById('col-f-bm').value = '';
+      document.getElementById('col-f-ckpt').value = '';
+      colFilter();
+    }}
+    ['col-f-task','col-f-bm','col-f-ckpt'].forEach(function(id) {{
+      var el = document.getElementById(id);
+      if (el) el.addEventListener('keydown', function(e) {{ if (e.key === 'Enter') {{ e.preventDefault(); colFilter(); }} }});
+    }});
+    </script>
+    '''
+    return render_page("\u8bc4\u6d4b\u91c7\u96c6\u7ba1\u7406", notice_info + table_html, active="collections")
 
 @app.route("/collections/<tid>/<mid>")
 def collection_data(tid, mid):
@@ -3615,6 +3653,54 @@ def task_detail(tid):
             if p:
                 prompt_tags_html += f'<span class="ant-tag">{p["high_level"]} ({len(p.get("low_levels",[]))} \u6b65)</span>'
 
+    # Build single-bm preview dict for modal (mirrors tasks_page bm_preview structure)
+    import json as _json_td
+    bm_preview_one = {}
+    if bm:
+        _prompts_info = []
+        for pid in bm.get("prompt_ids", []):
+            p = get_prompt(pid)
+            if p:
+                _prompts_info.append({
+                    "name": p["high_level"],
+                    "steps": len(p.get("low_levels", [])),
+                    "low_levels": [{"zh": ll.get("zh", ""), "en": ll.get("en", "")} for ll in p.get("low_levels", [])],
+                })
+        _cr_obj = get_criterion(bm.get("criteria_id", ""))
+        _cr_info = ""
+        if _cr_obj:
+            _ct = CRITERIA_TYPES.get(_cr_obj["type"], {})
+            _cr_info = f'{_cr_obj["name"]} ({_ct.get("label", "")})'
+        _scene_desc = bm.get("scene_description", "").strip()
+        if not _scene_desc and sc:
+            _env = sc.get("environment", {})
+            _ws = _env.get("workspace", {})
+            _scene_desc = f'{sc.get("description","")} \u00b7 \u5de5\u4f5c\u533a {_ws.get("length",0)}x{_ws.get("width",0)}x{_ws.get("height",0)}cm \u00b7 {_env.get("conditions",{}).get("lighting","")}'
+        _props = bm.get("props", "").strip()
+        if not _props and sc:
+            _props = "\u3001".join(o.get("name", "") for o in sc.get("objects", []) if o.get("name"))
+        _refs = sc.get("references", {}) if sc else {}
+        _imgs = [{"url": x.get("url", ""), "description": x.get("description", "")} for x in _refs.get("images", [])]
+        _caps = [{"url": x.get("url", ""), "description": x.get("description", ""), "duration": x.get("duration", 0)} for x in _refs.get("capture_videos", [])]
+        _demos = [{"url": x.get("url", ""), "description": x.get("description", ""), "duration": x.get("duration", 0)} for x in _refs.get("demo_videos", [])]
+        bm_preview_one[bm["id"]] = {
+            "id": bm["id"],
+            "name": bm.get("name", ""),
+            "description": bm.get("description", ""),
+            "scene": sc["name"] if sc else "--",
+            "scene_type": scene_type,
+            "scene_description": _scene_desc,
+            "props": _props,
+            "images": _imgs,
+            "videos": _caps + _demos,
+            "criteria": _cr_info,
+            "prompts": _prompts_info,
+            "creator": bm.get("creator", ""),
+            "created_at": bm.get("created_at", ""),
+        }
+    bm_preview_one_json = _json_td.dumps(bm_preview_one, ensure_ascii=False)
+    bm_current_id = bm["id"] if bm else ""
+
     # Model names as tags
     model_tags_html = ""
     for mid in t["model_ids"]:
@@ -3689,6 +3775,44 @@ def task_detail(tid):
     task_title = f"\u8bc4\u6d4b\u4efb\u52a1 - {task_no}"
     start_link = "" if t["status"] == "\u5df2\u5b8c\u6210" else f'<a href="/evaluate/{t["id"]}" class="ant-btn ant-btn-primary">\u5f00\u59cb\u8bc4\u6d4b</a>'
 
+    # \u2500\u2500 Mirror create-task form structure \u2500\u2500
+    # Pull stored fields with deterministic mock fallbacks for legacy tasks
+    import random as _rndd
+    _rndd.seed(hash(tid))
+    _proj_pool = ["\u57fa\u7840\u7814\u7a76", "\u5b81\u5fb7\u5e94\u7528", "moz1", "spirit", "demo\u91c7\u96c6", "\u9884\u8bad\u7ec3\u91c7\u96c6", "\u591a\u4efb\u52a1"]
+    _device_pool = ["moz", "Franka"]
+    _deploy_map = {"moz": "\u672c\u5730\u90e8\u7f72", "Franka": "\u4e91\u7aef\u90e8\u7f72"}
+    display_name = t.get("display_name") or t["name"]
+    project = t.get("project") or _rndd.choice(_proj_pool)
+    collect_type = t.get("collect_type") or "test"
+    due_date = t.get("due_date") or (datetime.now() + timedelta(days=_rndd.randint(7, 30))).strftime("%Y-%m-%d")
+    description = t.get("description") or ""
+    device = t.get("device") or _rndd.choice(_device_pool)
+    deploy_mode = t.get("deploy_mode") or _deploy_map.get(device, "--")
+
+    # Resolve task_tags \u2192 display chips (lookup name in TAXONOMY)
+    def _tag_name_lookup(tag_id):
+        for _dim in TAXONOMY.get("dimensions", []):
+            for _tg in _dim.get("tags", []):
+                if _tg["id"] == tag_id:
+                    return _tg["name"]
+                for _st in _tg.get("sub_tags", []):
+                    if _st["id"] == tag_id:
+                        return _st["name"]
+        return tag_id
+    task_tag_ids = t.get("task_tags") or []
+    if not task_tag_ids:
+        # mock seed: pick 2 random capability tags
+        _cap_dim = next((d for d in TAXONOMY.get("dimensions", []) if d["id"] == "capability"), None)
+        if _cap_dim:
+            _all_caps = [tg["id"] for tg in _cap_dim["tags"]]
+            task_tag_ids = _rndd.sample(_all_caps, min(2, len(_all_caps)))
+    task_tags_html = "".join(
+        f'<span class="ant-tag ant-tag-blue">{_tag_name_lookup(tid_)}</span>' for tid_ in task_tag_ids
+    ) or '<span style="color:rgba(0,0,0,0.25);">--</span>'
+
+    desc_html = description if description else '<span style="color:rgba(0,0,0,0.25);">--</span>'
+
     content = f'''
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
       <span style="font-size:16px;font-weight:500;">{t["name"]}</span>
@@ -3696,53 +3820,171 @@ def task_detail(tid):
       <span class="{status_cls}">{t["status"]}</span>
     </div>
 
-    <!-- Task Info form -->
+    <!-- Task Info -->
     <div>
       <div class="ant-card ant-card-bordered">
         <div class="ant-card-body" style="padding:24px;">
-          <!-- Section 1: Basic Info -->
+
+          <!-- Section 1: \u57fa\u7840\u4fe1\u606f -->
           <h4 style="font-size:14px;font-weight:500;margin:0 0 16px;color:rgba(0,0,0,0.85);">\u57fa\u7840\u4fe1\u606f</h4>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px 32px;margin-bottom:16px;">
             <div><div style="font-size:12px;color:rgba(0,0,0,0.45);margin-bottom:4px;">\u4efb\u52a1\u540d\u79f0</div><div style="font-size:14px;">{t["name"]}</div></div>
-            <div><div style="font-size:12px;color:rgba(0,0,0,0.45);margin-bottom:4px;">\u6240\u5c5e\u9879\u76ee</div><div style="font-size:14px;">--</div></div>
-            <div><div style="font-size:12px;color:rgba(0,0,0,0.45);margin-bottom:4px;">\u91c7\u96c6\u7c7b\u578b</div><div style="font-size:14px;">test</div></div>
+            <div><div style="font-size:12px;color:rgba(0,0,0,0.45);margin-bottom:4px;">\u5411\u8bc4\u6d4b\u5458\u5c55\u793a\u540d\u79f0</div><div style="font-size:14px;">{display_name}</div></div>
+            <div><div style="font-size:12px;color:rgba(0,0,0,0.45);margin-bottom:4px;">\u6240\u5c5e\u9879\u76ee</div><div style="font-size:14px;">{project}</div></div>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px 32px;margin-bottom:16px;">
-            <div><div style="font-size:12px;color:rgba(0,0,0,0.45);margin-bottom:4px;">\u8bc4\u6d4b\u672c\u4f53</div><div style="font-size:14px;">--</div></div>
-            <div><div style="font-size:12px;color:rgba(0,0,0,0.45);margin-bottom:4px;">\u8bc4\u6d4b\u6b21\u6570</div><div style="font-size:14px;">{t["total_sessions"]} \u6b21</div></div>
-            <div><div style="font-size:12px;color:rgba(0,0,0,0.45);margin-bottom:4px;">\u9884\u671f\u4ea4\u4ed8\u65e5\u671f</div><div style="font-size:14px;">--</div></div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px 32px;margin-bottom:24px;">
+            <div><div style="font-size:12px;color:rgba(0,0,0,0.45);margin-bottom:4px;">\u91c7\u96c6\u7c7b\u578b</div><div style="font-size:14px;">{collect_type}</div></div>
             <div><div style="font-size:12px;color:rgba(0,0,0,0.45);margin-bottom:4px;">\u4f18\u5148\u7ea7</div><div style="font-size:14px;">{t["priority"]}</div></div>
-            <div style="grid-column:2/4;"><div style="font-size:12px;color:rgba(0,0,0,0.45);margin-bottom:4px;">\u4efb\u52a1\u6807\u7b7e</div><div style="font-size:14px;">--</div></div>
+            <div><div style="font-size:12px;color:rgba(0,0,0,0.45);margin-bottom:4px;">\u9884\u671f\u4ea4\u4ed8\u65e5\u671f</div><div style="font-size:14px;">{due_date}</div></div>
+          </div>
+          <div style="margin-bottom:16px;">
+            <div style="font-size:12px;color:rgba(0,0,0,0.45);margin-bottom:4px;">\u4efb\u52a1\u6807\u7b7e</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">{task_tags_html}</div>
+          </div>
+          <div style="margin-bottom:24px;">
+            <div style="font-size:12px;color:rgba(0,0,0,0.45);margin-bottom:4px;">\u4efb\u52a1\u63cf\u8ff0</div>
+            <div style="font-size:14px;line-height:1.7;">{desc_html}</div>
           </div>
 
           <hr style="border:none;border-top:1px solid #f0f0f0;margin:0 0 20px;">
 
-          <!-- Section 2: Checkpoint -->
-          <h4 style="font-size:14px;font-weight:500;margin:0 0 12px;color:rgba(0,0,0,0.85);">\u8bc4\u6d4b\u6a21\u578b</h4>
-          <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px 32px;margin-bottom:24px;">
-            <div><div style="font-size:12px;color:rgba(0,0,0,0.45);margin-bottom:4px;">Checkpoint</div><div style="display:flex;flex-wrap:wrap;gap:6px;">{model_tags_html}</div></div>
-            <div><div style="font-size:12px;color:rgba(0,0,0,0.45);margin-bottom:4px;">\u90e8\u7f72\u65b9\u5f0f</div><div style="font-size:14px;">--</div></div>
+          <!-- Section 2: \u8bc4\u6d4b\u914d\u7f6e -->
+          <h4 style="font-size:14px;font-weight:500;margin:0 0 16px;color:rgba(0,0,0,0.85);">\u8bc4\u6d4b\u914d\u7f6e</h4>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px 32px;margin-bottom:16px;">
+            <div><div style="font-size:12px;color:rgba(0,0,0,0.45);margin-bottom:4px;">\u8bc4\u6d4b\u672c\u4f53</div><div style="font-size:14px;">{device}</div></div>
+            <div><div style="font-size:12px;color:rgba(0,0,0,0.45);margin-bottom:4px;">\u90e8\u7f72\u65b9\u5f0f</div><div style="font-size:14px;">{deploy_mode}</div></div>
+            <div><div style="font-size:12px;color:rgba(0,0,0,0.45);margin-bottom:4px;">\u8bc4\u6d4b\u6b21\u6570</div><div style="font-size:14px;">{t["total_sessions"]} \u6b21</div></div>
           </div>
-
-          <hr style="border:none;border-top:1px solid #f0f0f0;margin:0 0 20px;">
-
-          <!-- Section 3: Benchmark (card preview) -->
-          <h4 style="font-size:14px;font-weight:500;margin:0 0 12px;color:rgba(0,0,0,0.85);">Benchmark</h4>
-          <div style="padding:14px 18px;background:#fafafa;border-radius:8px;border:1px solid #f0f0f0;">
-            <div style="font-size:15px;font-weight:500;margin-bottom:8px;">{bm_name}</div>
-            <div style="display:flex;gap:20px;margin-bottom:10px;font-size:13px;">
-              <div><span style="color:rgba(0,0,0,0.45);">\u573a\u666f:</span> <span style="font-weight:500;">{scene_name}</span> <span class="ant-tag ant-tag-cyan" style="font-size:11px;">{scene_type}</span></div>
-              <div><span style="color:rgba(0,0,0,0.45);">\u8bc4\u4ef7\u6807\u51c6:</span> <span style="font-weight:500;">{cr_name}</span></div>
+          <div style="margin-bottom:20px;">
+            <div style="font-size:12px;color:rgba(0,0,0,0.45);margin-bottom:4px;">Checkpoint (\u81f3\u5c11\u4e24\u4e2a)</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">{model_tags_html}</div>
+          </div>
+          <div>
+            <div style="font-size:12px;color:rgba(0,0,0,0.45);margin-bottom:8px;">Benchmark</div>
+            <div style="padding:14px 18px;background:#fafafa;border-radius:8px;border:1px solid #f0f0f0;position:relative;">
+              <div style="font-size:15px;font-weight:500;margin-bottom:10px;">{bm_name}</div>
+              <div style="display:grid;grid-template-columns:90px 1fr;gap:8px 12px;font-size:13px;align-items:start;">
+                <span style="color:rgba(0,0,0,0.45);">\u573a\u666f\u63cf\u8ff0</span>
+                <span style="line-height:1.7;">{scene_name} <span class="ant-tag ant-tag-cyan" style="font-size:11px;">{scene_type}</span></span>
+                <span style="color:rgba(0,0,0,0.45);">\u8bc4\u4ef7\u6807\u51c6</span>
+                <span style="font-weight:500;">{cr_name}</span>
+                <span style="color:rgba(0,0,0,0.45);">\u63d0\u793a\u8bcd\u7ec4</span>
+                <span style="display:flex;flex-wrap:wrap;gap:4px;">{prompt_tags_html}</span>
+              </div>
+              <a href="javascript:;" onclick="openBmDetail()" style="position:absolute;top:14px;right:16px;font-size:13px;color:#1F80A0;text-decoration:none;">\u67e5\u770b\u8be6\u60c5 &rarr;</a>
             </div>
-            <div style="font-size:12px;color:rgba(0,0,0,0.45);margin-bottom:4px;">\u63d0\u793a\u8bcd\u7ec4:</div>
-            <div style="display:flex;flex-wrap:wrap;gap:4px;">{prompt_tags_html}</div>
           </div>
+
         </div>
       </div>
     </div>
 
+    <!-- Benchmark detail modal -->
+    <div class="ant-drawer-mask" id="bm-detail-modal" style="background:rgba(0,0,0,0.45);">
+      <div class="ant-drawer-content" style="width:720px;max-width:90vw;">
+        <div class="ant-drawer-header">
+          <h3 id="bm-detail-title">Benchmark \u8be6\u60c5</h3>
+          <button class="ant-drawer-close" onclick="closeBmDetail()">&times;</button>
+        </div>
+        <div class="ant-drawer-body">
+          <div id="bm-detail-body" style="font-size:14px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+    var bmData = {bm_preview_one_json};
+    var bmCurrentId = "{bm_current_id}";
+    function closeBmDetail() {{ closeModal('bm-detail-modal'); }}
+    function openBmDetail() {{
+      if (!bmCurrentId) return;
+      var d = bmData[bmCurrentId];
+      if (!d) return;
+      document.getElementById('bm-detail-title').textContent = 'Benchmark \u8be6\u60c5 - ' + d.name;
+      function esc(s) {{ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }}
+      function escAttr(s) {{ return esc(s).replace(/'/g, '&#39;'); }}
+      var promptsHtml = '';
+      d.prompts.forEach(function(p, pi) {{
+        var llId = 'bm-mo-prompt-' + pi;
+        var llRows = '';
+        (p.low_levels || []).forEach(function(ll, li) {{
+          llRows += '<div style="padding:4px 0 4px 28px;font-size:12px;color:rgba(0,0,0,0.65);border-bottom:1px solid #fafafa;"><span style="color:rgba(0,0,0,0.25);margin-right:6px;">' + (li+1) + '.</span>' + esc(ll.zh) + ' <span style="color:rgba(0,0,0,0.35);">' + esc(ll.en) + '</span></div>';
+        }});
+        promptsHtml += ''
+          + '<div style="border:1px solid #f0f0f0;border-radius:6px;margin-bottom:6px;background:#fff;overflow:hidden;">'
+          + '<div style="padding:8px 12px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;" onclick="var c=document.getElementById(\\''+llId+'\\');var a=this.querySelector(\\'.ll-a\\');var show=c.style.display===\\'none\\';c.style.display=show?\\'\\':\\'none\\';a.style.transform=show?\\'rotate(90deg)\\':\\'\\';">'
+          +   '<span class="ll-a" style="display:inline-block;font-size:10px;color:rgba(0,0,0,0.3);transition:transform 0.2s;">\u25b6</span>'
+          +   '<span style="font-weight:500;">' + esc(p.name) + '</span>'
+          +   '<span style="color:rgba(0,0,0,0.45);">\u00b7 ' + p.steps + ' \u6b65</span>'
+          + '</div>'
+          + '<div id="' + llId + '" style="display:none;padding:4px 12px 8px;border-top:1px solid #f5f5f5;">' + (llRows || '<div style="color:rgba(0,0,0,0.25);padding:4px 0;">\u6682\u65e0</div>') + '</div>'
+          + '</div>';
+      }});
+      if (!promptsHtml) promptsHtml = '<span style="color:rgba(0,0,0,0.25);">\u2014</span>';
+      var propsHtml = '';
+      if (d.props) {{
+        d.props.split(/[,\uff0c\u3001]/).forEach(function(p) {{
+          p = p.trim();
+          if (p) propsHtml += '<span class="ant-tag">' + esc(p) + '</span>';
+        }});
+      }}
+      if (!propsHtml) propsHtml = '<span style="color:rgba(0,0,0,0.25);">\u2014</span>';
+      var imgsHtml = '';
+      (d.images || []).forEach(function(im, i) {{
+        var desc = im.description || ('\u56fe\u7247 ' + (i+1));
+        imgsHtml += ''
+          + '<div class="media-card" onclick="window.openMediaViewer(\\'image\\', ' + i + ', \\'' + escAttr(desc) + '\\', \\'' + escAttr(im.url || '') + '\\')">'
+          + '<div class="media-thumb"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#8dcde0" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>'
+          + '<div class="media-desc">' + esc(desc) + '</div>'
+          + '</div>';
+      }});
+      if (!imgsHtml) imgsHtml = '<span style="color:rgba(0,0,0,0.25);">\u2014</span>';
+      else imgsHtml = '<div class="media-grid">' + imgsHtml + '</div>';
+      var vidsHtml = '';
+      (d.videos || []).forEach(function(v, i) {{
+        var desc = v.description || ('\u89c6\u9891 ' + (i+1));
+        var dur = v.duration ? (' \u00b7 ' + v.duration + 's') : '';
+        vidsHtml += ''
+          + '<div class="media-card" onclick="window.openMediaViewer(\\'video\\', ' + i + ', \\'' + escAttr(desc) + '\\', \\'' + escAttr(v.url || '') + '\\')">'
+          + '<div class="media-thumb media-thumb-video"><svg width="28" height="28" viewBox="0 0 24 24" fill="#1F80A0"><polygon points="6 4 20 12 6 20"/></svg></div>'
+          + '<div class="media-desc">' + esc(desc) + dur + '</div>'
+          + '</div>';
+      }});
+      if (!vidsHtml) vidsHtml = '<span style="color:rgba(0,0,0,0.25);">\u2014</span>';
+      else vidsHtml = '<div class="media-grid">' + vidsHtml + '</div>';
+      var sd = d.scene_description || '<span style="color:rgba(0,0,0,0.25);">\u2014</span>';
+      var cri = d.criteria || '<span style="color:rgba(0,0,0,0.25);">\u2014</span>';
+      var html = ''
+        + '<div style="margin-bottom:20px;">'
+        + '<h4 style="margin:0 0 12px;font-size:14px;font-weight:500;color:rgba(0,0,0,0.85);">\u57fa\u672c\u4fe1\u606f</h4>'
+        + '<div style="display:grid;grid-template-columns:110px 1fr;gap:10px 16px;font-size:13px;">'
+        + '<span style="color:rgba(0,0,0,0.45);">\u540d\u79f0</span><span style="font-weight:500;font-size:14px;">' + esc(d.name || '--') + '</span>'
+        + '<span style="color:rgba(0,0,0,0.45);">\u63cf\u8ff0</span><span>' + (d.description ? esc(d.description) : '\u2014') + '</span>'
+        + '<span style="color:rgba(0,0,0,0.45);">\u521b\u5efa</span><span>' + esc(d.creator || '--') + ' \u00b7 ' + esc(d.created_at || '--') + '</span>'
+        + '</div></div>'
+        + '<hr style="border:none;border-top:1px solid #f0f0f0;margin:16px 0;">'
+        + '<div style="margin-bottom:20px;">'
+        + '<h4 style="margin:0 0 12px;font-size:14px;font-weight:500;color:rgba(0,0,0,0.85);">\u573a\u666f\u914d\u7f6e</h4>'
+        + '<div style="display:grid;grid-template-columns:110px 1fr;gap:12px 16px;font-size:13px;align-items:start;margin-bottom:16px;">'
+        + '<span style="color:rgba(0,0,0,0.45);">\u573a\u666f\u63cf\u8ff0</span><span style="line-height:1.8;">' + sd + '</span>'
+        + '<span style="color:rgba(0,0,0,0.45);">\u4efb\u52a1\u9053\u5177</span><span style="display:flex;flex-wrap:wrap;gap:4px;">' + propsHtml + '</span>'
+        + '</div>'
+        + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">'
+        + '<div><div style="font-size:12px;color:rgba(0,0,0,0.45);margin-bottom:8px;">\u573a\u666f\u56fe\u7247</div>' + imgsHtml + '</div>'
+        + '<div><div style="font-size:12px;color:rgba(0,0,0,0.45);margin-bottom:8px;">\u573a\u666f\u89c6\u9891</div>' + vidsHtml + '</div>'
+        + '</div>'
+        + '</div>'
+        + '<hr style="border:none;border-top:1px solid #f0f0f0;margin:16px 0;">'
+        + '<div>'
+        + '<h4 style="margin:0 0 12px;font-size:14px;font-weight:500;color:rgba(0,0,0,0.85);">\u5173\u8054\u914d\u7f6e</h4>'
+        + '<div style="display:grid;grid-template-columns:110px 1fr;gap:14px 16px;font-size:13px;align-items:start;">'
+        + '<span style="color:rgba(0,0,0,0.45);">\u8bc4\u4ef7\u6807\u51c6</span><span>' + cri + '</span>'
+        + '<span style="color:rgba(0,0,0,0.45);">\u63d0\u793a\u8bcd (' + d.prompts.length + ')</span><div>' + promptsHtml + '</div>'
+        + '</div></div>';
+      document.getElementById('bm-detail-body').innerHTML = html;
+      openModal('bm-detail-modal');
+    }}
+    </script>
     '''
     bc = (
         '<a href="/tasks" style="color:#1F80A0;">\u8bc4\u6d4b\u7ba1\u7406</a>'
